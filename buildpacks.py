@@ -100,6 +100,7 @@ def get_builds_and_write(pagelist, log):
                         os.mkdir(catdir)
                     for rat in ratings:
                         directories += [catdir + '/' + rat]
+                gbawdebugger(i, categories, ratings, codes, directories, log)
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
@@ -129,7 +130,6 @@ def get_builds_and_write(pagelist, log):
             else:
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
                 print i + " failed."
-        gbawdebugger(i, categories, ratings, codes, directories, log)
 
 def category_page_list(page):
     pagelist = re.findall(">Build:.*?<", page) + re.findall(">Archive:.*?<", page)
