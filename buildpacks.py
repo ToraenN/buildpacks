@@ -15,13 +15,12 @@ def main():
 		start_package()
 	else:
 		print "Curse's servers are (probably) down. Try again later."
-		print r1.status, r1.reason
-		print r1.getheaders()
-		
+		httpfaildebugger('Start', r1.status, r1.response, r1.getheaders())
+
 def start_package():
 	global conn
 
-	answer = raw_input('Debugger on? (y/n) ')
+	answer = raw_input('Build debugger on? (y/n) ')
 	if answer == 'y':
 		answer = raw_input('Print to standard output (otherwise goes to logfile)? (y/n) ')
 		if answer == 'y':
@@ -37,8 +36,11 @@ def start_package():
 		answer = raw_input('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
 		if answer == 'y':
 			DIVISIONS += [a]
+	# If no categories were selected, give the opportunity for a custom category input.
 	if len(DIVISIONS) < 1:
 		answer = raw_input('Well what DO you want to compile? ')
+		if answer == '':
+			raise SystemExit()
 		print 'I hope you typed that correctly.'
 		DIVISIONS += [answer.replace(' ','_')]
 		
@@ -57,10 +59,8 @@ def start_package():
 			get_builds_and_write(pagelist, log)
 			print "All builds in " + div.replace('_',' ') + " finished!"
 		else:
-			print "Build listing for " + div + " failed."
-			print response.status, response.reason
-			print response.getheaders()
-			raise SystemExit()
+			print "Build listing for " + div.replace('_',' ') + " failed."
+			httpfaildebugger(div, response.status, response.reason, response.getheaders())
 	print "Script complete."
 	
 def get_builds_and_write(pagelist, log):
@@ -127,11 +127,8 @@ def get_builds_and_write(pagelist, log):
 				print i + " complete."
 				
 			else:
-				#Quits after displaying the headers
+				httpfaildebugger(i, response.status, response.reason, response.getheaders())
 				print i + " failed."
-				print response.status, response.reason
-				print response.getheaders()
-				raise SystemExit()
 		gbawdebugger(i, categories, ratings, codes, directories, log)
 
 def category_page_list(page):
@@ -176,6 +173,22 @@ def id_ratings(page):
 	elif page.find('been archived') > -1:
 		ratings += ['Archived']
 	return ratings
+
+def httpfaildebugger(attempt, response, reason, headers):
+	debuglog = open('./buildpackshttpdebug.txt', 'ab')
+	debuglog.write(attempt + '\r\n' + response + ' - ' + reason + '\r\n' + str(headers) + '\r\n')
+	print 'HTTPConnection error encountered: ' + response + ' - ' + reason
+	if attempt == 'Start':
+		raise SystemExit()
+	while not answer == 'y' or 'n':
+		answer = raw_input('Do you wish to continue the script? ' + attempt ' will be skipped. (y/n) ')
+		if answer = 'y':
+			print 'Ok, continuing...'
+		elif answer = 'n':
+			print 'Ok, exiting...'
+			raise SystemExit()
+		else:
+			print 'Please enter \'y\' or \'n\'.'
 
 def gbawdebugger(build, categories, ratings, codes, directories, log = 0):
 	if log == 1:
