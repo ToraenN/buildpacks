@@ -14,7 +14,6 @@ def main():
         print "Holy shit! Curse is actually working. Now let's start getting that build data."
         start_package()
     else:
-        print "Curse's servers are (probably) down. Try again later."
         httpfaildebugger('Start', r1.status, r1.response, r1.getheaders())
 
 def start_package():
@@ -59,8 +58,8 @@ def start_package():
             get_builds_and_write(pagelist, log)
             print "All builds in " + div.replace('_',' ') + " finished!"
         else:
-            print "Build listing for " + div.replace('_',' ') + " failed."
             httpfaildebugger(div, response.status, response.reason, response.getheaders())
+            print "Build listing for " + div.replace('_',' ') + " failed."
     print "Script complete."
     
 def get_builds_and_write(pagelist, log):
@@ -179,6 +178,7 @@ def httpfaildebugger(attempt, response, reason, headers):
     debuglog.write(str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n' + '----' + '\r\n')
     print 'HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason)
     if attempt == 'Start':
+        print "Curse's servers are (probably) down. Try again later."
         raise SystemExit()
     answer = ''
     while not answer == ('y' or 'n'):
