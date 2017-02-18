@@ -1,6 +1,6 @@
 # buildpacks.py
 The build pack script for PvXwiki
-This is a python 2.7 script for collecting all of the build template codes for given categories on the wiki.
+This is a python 2.7.13 script for collecting all of the build template codes for given categories on the wiki.
 Danny provided the original version of this script (which can be found in the history on the script's PvXwiki page).
 
 # Initial Setup
@@ -8,6 +8,15 @@ The script starts by asking the user a few questions (the default for each is 'n
 
 # Program Flow
 The script then builds the list of pages for one of its categories, and then visits each page in that category. It retrieves from each page: all template codes, the rating, and the gametypes. Each build is then written to all relevant directories (Each gametype gets a directory with subdirectories for each rating - builds go only in the rating subdirectories) in the 'PvX Build Packs' folder. Once a category is complete, it repeats for the next category until all categories are complete.
+
+# Notes
+The script only recognizes builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
+
+It will skip any builds that have an open primary profession (Guild Wars does not recognize template codes that lack a primary profession so there is no point in saving them).
+
+Team builds are saved in their own subfolders and each template is named: Team - Build Name - #.txt. The script does not pull the builds' names or profession prefixes from the page to name the file with.
+
+Non-team builds that have separate player and hero template codes will appropriately be sorted to the 'general' (player build) and 'hero' (hero build) folders.
 
 # Debugging
 The script has two debugging outputs: buildpackshttpdebug.txt (for HTTPConnection errors) and buildpacksdebug.txt (for the build-writing portion of the script).
