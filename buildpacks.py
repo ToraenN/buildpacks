@@ -2,6 +2,7 @@ import httplib
 import re
 import os
 import os.path
+import urllib
 
 conn = httplib.HTTPConnection('gwpvx.gamepedia.com')
 
@@ -68,7 +69,7 @@ def get_builds_and_write(pagelist, log):
         if i.find('Any/') > -1:
             print i + " skipped (empty primary profession)."
         else:
-            print "Attempting " + i + "..."
+            print "Attempting " + (urllib.unquote(i)).replace('_',' ') + "..."
             conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
             response = conn.getresponse()
             page = response.read()
@@ -78,13 +79,7 @@ def get_builds_and_write(pagelist, log):
                 categories = id_buildtypes(page)
                 ratings = id_ratings(page)
                 codes = find_template_code(page)
-                # If one of these values can't be found on the build page, skip the build
-                if len(categories) == 0:
-                    print 'No categories found for ' + i + '. Skipped.'
-                    continue
-                if len(ratings) == 0:
-                    print 'No rating found for ' + i + '. Skipped.'
-                    continue
+                # If no template codes found on the build page, skip the build
                 if len(codes) == 0:
                     print 'No template code found for ' + i + '. Skipped.'
                     continue
@@ -113,19 +108,26 @@ def get_builds_and_write(pagelist, log):
                             teamdir = d + '/' + i.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
                             if not os.path.isdir(teamdir):
                                 os.mkdir(teamdir)
-                            outfile = open(teamdir + '/' + i.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + ' - ' + str(num) + '.txt','wb')
+                            outfile = open(teamdir + '/' + (urllib.unquote(i)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + ' - ' + str(num) + '.txt','wb')
                             outfile.write(j)
                 else:
                     for d in directories:
                         # Check for a non-team build with both player and hero versions, and sort them appropriately
                         if len(codes) > 1 and ('hero' in categories) and ('general' in categories) and d.find('Hero') > -1:
-                            outfile = open(d + '/' + i.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + ' - Hero.txt','wb')
+                            outfile = open(d + '/' + (urllib.unquote(i)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + ' - Hero.txt','wb')
                             outfile.write(codes[1])
                         else:
-                            outfile = open(d + '/' + i.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + '.txt','wb')
+                            outfile = open(d + '/' + (urllib.unquote(i)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + '.txt','wb')
                             outfile.write(codes[0])
                 print i + " complete."
-                
+            elif response.status == 301:
+                # Inserts the redirected build name into the pagelist array so it is done next
+                headers = str(response.getheaders())
+                newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
+                newpagename = newpagestr[0].replace('gwpvx.gamepedia.com/','').replace("')",'').replace('_',' ')
+                newpagepos = pagelist.index(i) + 1
+                pagelist.insert(newpagepos, newpagename)
+                print '301 redirection...'
             else:
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
                 print i + " failed."
@@ -153,6 +155,8 @@ def id_buildtypes(page):
     for t in types:
         if rawtypes[0].find(t) > -1:
             categories += [t]
+    if len(categories) == 0:
+        categories += ['Uncategorized']
     return categories
 
 def id_ratings(page): 
@@ -171,6 +175,8 @@ def id_ratings(page):
         ratings += ['Testing']
     elif page.find('been archived') > -1:
         ratings += ['Archived']
+    else:
+        ratings += ['Nonrated']
     return ratings
 
 def httpfaildebugger(attempt, response, reason, headers):
