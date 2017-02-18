@@ -29,7 +29,7 @@ def start_package():
             log = 1
     else:
         log = 0
-    ALLDIVS = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds']
+    ALLDIVS = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds']
     DIVISIONS = []
     for a in ALLDIVS:
         answer = raw_input('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
