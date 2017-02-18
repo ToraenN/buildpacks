@@ -46,6 +46,7 @@ def start_package():
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
     
+    buildlist = []
     for cat in CATEGORIES:
         print "Assembling build list for " + cat.replace('_',' ') + "..."
         conn.request('GET', '/Category:' + cat)
@@ -53,13 +54,12 @@ def start_package():
         page = response.read()
         conn.close()
         if response.status == 200:
-            pagelist = category_page_list(page)
-            print "Build listing for " + cat.replace('_',' ') + " created!"
-            get_builds_and_write(pagelist, log)
-            print "All builds in " + cat.replace('_',' ') + " finished!"
+            buildlist = category_page_list(page, buildlist)
+            print "Builds from " + cat.replace('_',' ') + " added to list!"
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
             print "Build listing for " + cat.replace('_',' ') + " failed."
+    get_builds_and_write(buildlist, log)
     print "Script complete."
     
 def get_builds_and_write(pagelist, log):
@@ -131,13 +131,13 @@ def get_builds_and_write(pagelist, log):
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
                 print i + " failed."
 
-def category_page_list(page):
+def category_page_list(page, newlist):
     pagelist = re.findall(">Build:.*?<", page) + re.findall(">Archive:.*?<", page)
-    current = ''
-    newlist = []
+    current = []
     for i in pagelist:
         current = i.replace('?','').replace('>','').replace('<','').replace('&quot;','"')
-        newlist += [current]
+        if not current in newlist:
+            newlist += [current]
     return newlist
 
 def find_template_code(page):
