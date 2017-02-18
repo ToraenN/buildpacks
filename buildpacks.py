@@ -19,7 +19,6 @@ def main():
 
 def start_package():
     global conn
-
     answer = raw_input('Build debugger on? (y/n) ')
     if answer == 'y':
         answer = raw_input('Print to standard output (otherwise goes to logfile)? (y/n) ')
@@ -30,37 +29,37 @@ def start_package():
             log = 1
     else:
         log = 0
-    ALLDIVS = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds']
-    DIVISIONS = []
-    for a in ALLDIVS:
+    ALLCATS = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds']
+    CATEGORIES = []
+    for a in ALLCATS:
         answer = raw_input('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
         if answer == 'y':
-            DIVISIONS += [a]
+            CATEGORIES += [a]
     # If no categories were selected, give the opportunity for a custom category input.
-    if len(DIVISIONS) < 1:
+    if len(CATEGORIES) < 1:
         answer = raw_input('Well what DO you want to compile? ')
         if answer == '':
             raise SystemExit()
         print 'I hope you typed that correctly.'
-        DIVISIONS += [answer.replace(' ','_')]
+        CATEGORIES += [answer.replace(' ','_')]
         
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
     
-    for div in DIVISIONS:
-        print "Assembling build list for " + div.replace('_',' ') + "..."
-        conn.request('GET', '/Category:' + div)
+    for cat in CATEGORIES:
+        print "Assembling build list for " + cat.replace('_',' ') + "..."
+        conn.request('GET', '/Category:' + cat)
         response = conn.getresponse()
         page = response.read()
         conn.close()
         if response.status == 200:
             pagelist = category_page_list(page)
-            print "Build listing for " + div.replace('_',' ') + " created!"
+            print "Build listing for " + cat.replace('_',' ') + " created!"
             get_builds_and_write(pagelist, log)
-            print "All builds in " + div.replace('_',' ') + " finished!"
+            print "All builds in " + cat.replace('_',' ') + " finished!"
         else:
-            httpfaildebugger(div, response.status, response.reason, response.getheaders())
-            print "Build listing for " + div.replace('_',' ') + " failed."
+            httpfaildebugger(cat, response.status, response.reason, response.getheaders())
+            print "Build listing for " + cat.replace('_',' ') + " failed."
     print "Script complete."
     
 def get_builds_and_write(pagelist, log):
@@ -76,7 +75,7 @@ def get_builds_and_write(pagelist, log):
             conn.close()
             if response.status == 200:
                 # Grab the build info
-                categories = id_buildtypes(page)
+                gametypes = id_gametypes(page)
                 ratings = id_ratings(page)
                 codes = find_template_code(page)
                 # If no template codes found on the build page, skip the build
@@ -85,16 +84,16 @@ def get_builds_and_write(pagelist, log):
                     continue
                 # Establish the directories to be used for the build
                 directories = []
-                for cat in categories:
-                    if len(cat) > 3 and cat.find('team') == -1:
-                        catdir = './PvX Build Packs/' + cat.title()
+                for typ in gametypes:
+                    if len(typ) > 3 and typ.find('team') == -1:
+                        typdir = './PvX Build Packs/' + typ.title()
                     else:
-                        catdir = './PvX Build Packs/' + cat
-                    if not os.path.isdir(catdir):
-                        os.mkdir(catdir)
+                        typdir = './PvX Build Packs/' + typ
+                    if not os.path.isdir(typdir):
+                        os.mkdir(typdir)
                     for rat in ratings:
-                        directories += [catdir + '/' + rat]
-                gbawdebugger(i, categories, ratings, codes, directories, log)
+                        directories += [typdir + '/' + rat]
+                gbawdebugger(i, gametypes, ratings, codes, directories, log)
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
@@ -113,7 +112,7 @@ def get_builds_and_write(pagelist, log):
                 else:
                     for d in directories:
                         # Check for a non-team build with both player and hero versions, and sort them appropriately
-                        if len(codes) > 1 and ('hero' in categories) and ('general' in categories) and d.find('Hero') > -1:
+                        if len(codes) > 1 and ('hero' in gametypes) and ('general' in gametypes) and d.find('Hero') > -1:
                             outfile = open(d + '/' + (urllib.unquote(i)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + ' - Hero.txt','wb')
                             outfile.write(codes[1])
                         else:
@@ -148,16 +147,16 @@ def find_template_code(page):
         newlist += [i]
     return newlist
 
-def id_buildtypes(page):
+def id_gametypes(page):
     types = ['AB','FA','JQ','GvG','HA','RA','PvP team','general','farming','running','hero','SC','PvE team','CM']
     rawtypes = re.findall('<div class="build-types">(.*?)</div>', page, re.DOTALL)
-    categories = []
+    gametypes = []
     for t in types:
         if rawtypes[0].find(t) > -1:
-            categories += [t]
-    if len(categories) == 0:
-        categories += ['Uncategorized']
-    return categories
+            gametypes += [t]
+    if len(gametypes) == 0:
+        gametypes += ['Uncategorized']
+    return gametypes
 
 def id_ratings(page): 
     ratings = []
@@ -197,14 +196,14 @@ def httpfaildebugger(attempt, response, reason, headers):
         else:
             print 'Please enter \'y\' or \'n\'.'
 
-def gbawdebugger(build, categories, ratings, codes, directories, log = 0):
+def gbawdebugger(build, gametypes, ratings, codes, directories, log = 0):
     if log == 1:
         # Write to a file
         debuglog = open('./buildpacksdebug.txt', 'ab')
-        debuglog.write(build + '\r\n' + str(categories) + '\r\n' + str(ratings) + '\r\n' + str(codes) + '\r\n' + str(directories) + '\r\n----\r\n') 
+        debuglog.write(build + '\r\n' + str(gametypes) + '\r\n' + str(ratings) + '\r\n' + str(codes) + '\r\n' + str(directories) + '\r\n----\r\n') 
     elif log == 2:
         # Display in the window
-        print categories
+        print gametypes
         print ratings
         print codes
         print directories
