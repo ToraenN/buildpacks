@@ -7,7 +7,7 @@ Danny provided the original version of this script (which can be found in the hi
 The script starts by asking the user a few questions (the default for each is 'n'). First, it asks if the build writing debugger should run (and which mode if 'y'). Then it goes through the preprogrammed categories, asking the user if each one should be compiled. If the user does not answer 'y' to any of them, the script will prompt the user for a single category from PvXwiki.
 
 # Program Flow
-The script then builds the list of pages for one of its categories, and then visits each page in that category. It retrieves from each page: all template codes, the rating, and the gametypes. Each build is then written to all relevant directories (Each gametype gets a directory with subdirectories for each rating - builds go only in the rating subdirectories) in the 'PvX Build Packs' folder. Once a category is complete, it repeats for the next category until all categories are complete.
+The script then builds the list of pages by visiting each category (builds that show up in multiple categories are only added once), and then visits each page in that list. It retrieves from each page: all template codes, the rating, and the gametypes. Each build is then written to all relevant directories (Each gametype gets a directory with subdirectories for each rating - builds go only in the rating subdirectories) in the 'PvX Build Packs' folder.
 
 # Notes
 The script only recognizes builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
