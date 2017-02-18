@@ -55,7 +55,7 @@ def start_package():
         conn.close()
         if response.status == 200:
             pagelist += category_page_list(page, buildlist)
-            print "Builds from " + cat.replace('_',' ') + " added to list!
+            print "Builds from " + cat.replace('_',' ') + " added to list!"
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
             print "Build listing for " + cat.replace('_',' ') + " failed."
