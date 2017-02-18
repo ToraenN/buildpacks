@@ -54,12 +54,12 @@ def start_package():
         page = response.read()
         conn.close()
         if response.status == 200:
-            pagelist += category_page_list(page, buildlist)
+            buildlist = category_page_list(page, buildlist)
             print "Builds from " + cat.replace('_',' ') + " added to list!"
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
             print "Build listing for " + cat.replace('_',' ') + " failed."
-        get_builds_and_write(buildlist, log)
+    get_builds_and_write(buildlist, log)
     print "Script complete."
     
 def get_builds_and_write(pagelist, log):
@@ -133,7 +133,7 @@ def get_builds_and_write(pagelist, log):
 
 def category_page_list(page, newlist):
     pagelist = re.findall(">Build:.*?<", page) + re.findall(">Archive:.*?<", page)
-    current = ''
+    current = []
     for i in pagelist:
         current = i.replace('?','').replace('>','').replace('<','').replace('&quot;','"')
         if not current in newlist:
