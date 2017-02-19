@@ -34,6 +34,10 @@ def start_package():
         CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
     else:
         CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
+    if parameters.find('l'):
+        directories = [(raw_input('Limit output to directory: ')).replace(]
+    if parameters.find('r'):
+        rateoff = 1
     
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
@@ -51,10 +55,10 @@ def start_package():
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
             print "Build listing for " + cat.replace('_',' ') + " failed."
-    get_builds_and_write(buildlist, log)
+    get_builds_and_write(buildlist, log, directories, rateoff)
     print "Script complete."
     
-def get_builds_and_write(pagelist, log):
+def get_builds_and_write(pagelist, log, directories = [], rateoff = 0):
     for i in pagelist:
         # Check to see if the build has an empty primary profession (would generate an invalid template code)
         if i.find('Any/') > -1:
@@ -75,16 +79,17 @@ def get_builds_and_write(pagelist, log):
                     print 'No template code found for ' + i + '. Skipped.'
                     continue
                 # Establish the directories to be used for the build
-                directories = []
-                for typ in gametypes:
-                    if len(typ) > 3 and typ.find('team') == -1:
-                        typdir = './PvX Build Packs/' + typ.title()
-                    else:
-                        typdir = './PvX Build Packs/' + typ
-                    if not os.path.isdir(typdir):
-                        os.mkdir(typdir)
-                    for rat in ratings:
-                        directories += [typdir + '/' + rat]
+                if directories == []:
+                    for typ in gametypes:
+                        if len(typ) > 3 and typ.find('team') == -1:
+                            typdir = './PvX Build Packs/' + typ.title()
+                        else:
+                            typdir = './PvX Build Packs/' + typ
+                        if not os.path.isdir(typdir):
+                            os.mkdir(typdir)
+                        if rateoff == 0:
+                            for rat in ratings:
+                                directories += [typdir + '/' + rat]
                 gbawdebugger(i, gametypes, ratings, codes, directories, log)
                 for d in directories:
                     if not os.path.isdir(d):
