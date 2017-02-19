@@ -165,6 +165,7 @@ def id_ratings(page):
     ratings = []
     if page.find('This build is part of the current metagame.') > -1:
         ratings += ['Meta']
+    #A second if statement because builds can have both Meta and one of Good/Great
     if page.find('in the range from 4.75') > -1:
         ratings += ['Great']
     elif page.find('in the range from 3.75') > -1:
@@ -177,8 +178,8 @@ def id_ratings(page):
         ratings += ['Testing']
     elif page.find('been archived') > -1:
         ratings += ['Archived']
-    else:
-        ratings += ['Nonrated']
+    if ratings == []:
+        ratings = ['Nonrated']
     return ratings
 
 def httpfaildebugger(attempt, response, reason, headers):
