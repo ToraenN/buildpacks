@@ -10,7 +10,9 @@ c : to have the program list all preprogrammed categories and ask the user which
 
 q : to ask the user for a single category to compile. Takes priority over c.
 
-l : TO BE ADDED : will allow the output directories to be limited (for example, only write to the JQ directory) when combined with q
+l : will limit the output directories to just a single user-defined directory (only usable with 'q')
+
+r : removes the rating subdirectories. Builds are saved directly to the gametype directories
 
 d : enables the debugger for the build writing segment (see Debugging below). 
 
