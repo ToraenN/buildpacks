@@ -27,9 +27,9 @@ def start_package():
         log = 0
     #Check for category selection mode. 'q' takes priority over 'c'
     if parameters.find('q') > -1:
-        CATEGORIES = [raw_input('Enter category: ')
+        CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
     elif parameters.find('c') > -1:
-        CATEGORIES = category_selction(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
+        CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
     else:
         CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
     
