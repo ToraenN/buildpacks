@@ -19,30 +19,18 @@ def main():
 
 def start_package():
     global conn
-    answer = raw_input('Build debugger on? (y/n) ')
-    if answer == 'y':
-        answer = raw_input('Print to standard output (otherwise goes to logfile)? (y/n) ')
-        if answer == 'y':
-            log = 2
-        else:
-            print 'Debug output will write to buildpacksdebug.txt'
-            log = 1
+    parameters = raw_input('Parameters: ')
+    #Check for debug mode
+    if parameters.find('d') > -1:
+        log = debug_enable(parameters)
     else:
         log = 0
-    ALLCATS = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds']
-    CATEGORIES = []
-    for a in ALLCATS:
-        answer = raw_input('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
-        if answer == 'y':
-            CATEGORIES += [a]
-    # If no categories were selected, give the opportunity for a custom category input.
-    if len(CATEGORIES) < 1:
-        answer = raw_input('Well what DO you want to compile? ')
-        if answer == '':
-            raise SystemExit()
-        print 'I hope you typed that correctly.'
-        CATEGORIES += [answer.replace(' ','_')]
-        
+    #Check for category selection mode
+    if parameters.find('c') > -1:
+        CATEGORIES = category_selction(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
+    else:
+        CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
+    
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
     
@@ -131,6 +119,31 @@ def get_builds_and_write(pagelist, log):
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
                 print i + " failed."
 
+def debug_enable(parameters):
+    if parameters.find('df') > -1:
+        print 'Debug output will write to buildpacksdebug.txt'
+        log = 1
+    else:
+        print 'Debug output will write to stdout.'
+        log = 1
+    return log
+
+def category_selection(ALLCATS):
+    CATEGORIES = []
+    for a in ALLCATS:
+        answer = raw_input('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
+        if answer == 'y':
+            CATEGORIES += [a]
+    # If no categories were selected, give the opportunity for a custom category input.
+    if len(CATEGORIES) < 1:
+        answer = raw_input('Well what DO you want to compile? ')
+        if answer == '':
+            print 'No category entered.'
+        else:
+            print 'I hope you typed that correctly.'
+            CATEGORIES += [answer.replace(' ','_')]
+    return CATEGORIES                
+                
 def category_page_list(page, newlist):
     pagelist = re.findall(">Build:.*?<", page) + re.findall(">Archive:.*?<", page)
     current = []
