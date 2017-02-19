@@ -19,30 +19,20 @@ def main():
 
 def start_package():
     global conn
-    answer = raw_input('Build debugger on? (y/n) ')
-    if answer == 'y':
-        answer = raw_input('Print to standard output (otherwise goes to logfile)? (y/n) ')
-        if answer == 'y':
-            log = 2
-        else:
-            print 'Debug output will write to buildpacksdebug.txt'
-            log = 1
+    parameters = raw_input('Parameters: ')
+    #Check for debug mode
+    if parameters.find('d') > -1:
+        log = debug_enable(parameters)
     else:
         log = 0
-    ALLCATS = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds']
-    CATEGORIES = []
-    for a in ALLCATS:
-        answer = raw_input('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
-        if answer == 'y':
-            CATEGORIES += [a]
-    # If no categories were selected, give the opportunity for a custom category input.
-    if len(CATEGORIES) < 1:
-        answer = raw_input('Well what DO you want to compile? ')
-        if answer == '':
-            raise SystemExit()
-        print 'I hope you typed that correctly.'
-        CATEGORIES += [answer.replace(' ','_')]
-        
+    #Check for category selection mode. 'q' takes priority over 'c'
+    if parameters.find('q') > -1:
+        CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
+    elif parameters.find('c') > -1:
+        CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
+    else:
+        CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
+    
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
     
@@ -131,6 +121,31 @@ def get_builds_and_write(pagelist, log):
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
                 print i + " failed."
 
+def debug_enable(parameters):
+    if parameters.find('df') > -1:
+        print 'Debug output will write to buildpacksdebug.txt'
+        log = 1
+    else:
+        print 'Debug output will write to stdout.'
+        log = 1
+    return log
+
+def category_selection(ALLCATS):
+    CATEGORIES = []
+    for a in ALLCATS:
+        answer = raw_input('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
+        if answer == 'y':
+            CATEGORIES += [a]
+    # If no categories were selected, give the opportunity for a custom category input.
+    if len(CATEGORIES) < 1:
+        answer = raw_input('Well what DO you want to compile? ')
+        if answer == '':
+            print 'No category entered.'
+        else:
+            print 'I hope you typed that correctly.'
+            CATEGORIES += [answer.replace(' ','_')]
+    return CATEGORIES                
+                
 def category_page_list(page, newlist):
     pagelist = re.findall(">Build:.*?<", page) + re.findall(">Archive:.*?<", page)
     current = []
@@ -165,6 +180,7 @@ def id_ratings(page):
     ratings = []
     if page.find('This build is part of the current metagame.') > -1:
         ratings += ['Meta']
+    #A second if statement because builds can have both Meta and one of Good/Great
     if page.find('in the range from 4.75') > -1:
         ratings += ['Great']
     elif page.find('in the range from 3.75') > -1:
@@ -177,8 +193,8 @@ def id_ratings(page):
         ratings += ['Testing']
     elif page.find('been archived') > -1:
         ratings += ['Archived']
-    else:
-        ratings += ['Nonrated']
+    if ratings == []:
+        ratings = ['Nonrated']
     return ratings
 
 def httpfaildebugger(attempt, response, reason, headers):
