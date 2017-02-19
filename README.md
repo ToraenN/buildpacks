@@ -4,7 +4,13 @@ This is a python 2.7.13 script for collecting all of the build template codes fo
 Danny provided the original version of this script (which can be found in the history on the script's PvXwiki page).
 
 # Initial Setup
-The script starts by asking the user a few questions (the default for each is 'n'). First, it asks if the build writing debugger should run (and which mode if 'y'). Then it goes through the preprogrammed categories, asking the user if each one should be compiled. If the user does not answer 'y' to any of them, the script will prompt the user for a single category from PvXwiki.
+The script starts by asking the user for parameters. If none are entered, the script will select the 'All working PvP builds' and 'All working PvE builds' categories (all of the currently vetted builds). The paramters that can be entered are:
+
+c : to have the program list all preprogrammed categories and ask the user which ones should be compiled from.
+q : to ask the user for a single category to compile. Takes priority over c.
+l : TO BE ADDED : will allow the output directories to be limited (for example, only write to the JQ directory) when combined with q
+d : enables the debugger for the build writing segment (see Debugging below). 
+s : to make the build-write debugger print to stdout instead of appending to the log file.
 
 # Program Flow
 The script then builds the list of pages by visiting each category (builds that show up in multiple categories are only added once), and then visits each page in that list. It retrieves from each page: all template codes, the rating, and the gametypes. Each build is then written to all relevant directories (Each gametype gets a directory with subdirectories for each rating - builds go only in the rating subdirectories) in the 'PvX Build Packs' folder.
@@ -23,4 +29,4 @@ The script has two debugging outputs: buildpackshttpdebug.txt (for HTTPConnectio
 
 The http log records the attempt (the starting check, the category, or the build), the response code, the response reason, and the headers returned. The http debugger is only called when the response is something other than a 200 code (reason: OK) and is not called on a 301 code (reason: Moved Permanently) for build pages (the redirect is followed).
 
-The build-writing log records the build attempted, the gametypes found, the ratings found, the build template codes found, and the directories created and saved to. The output can also be set to go to StdOut instead of a text file (via the questions at start).
+The build-writing log records the build attempted, the gametypes found, the ratings found, the build template codes found, and the directories created and saved to.
