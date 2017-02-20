@@ -128,7 +128,7 @@ def find_template_code(page):
     return newlist
 
 def id_gametypes(page):
-    types = ['AB','FA','JQ','GvG','HA','RA','PvP team','general','farming','running','hero','SC','PvE team','CM']
+    types = ['AB','FA','JQ','GvG','HA','RA','PvP team','general','farming','running','hero','SC','PvE team']
     rawtypes = re.findall('<div class="build-types">(.*?)</div>', page, re.DOTALL)
     gametypes = []
     if len(rawtypes) == 0:
