@@ -167,12 +167,9 @@ def id_gametypes(page):
     types = ['AB','FA','JQ','GvG','HA','RA','PvP team','general','farming','running','hero','SC','PvE team','CM']
     rawtypes = re.findall('<div class="build-types">(.*?)</div>', page, re.DOTALL)
     gametypes = []
-    if len(rawtypes) == 0:
-        pass
-    else:
-        for t in types:
-            if rawtypes[0].find(t) > -1:
-                gametypes += [t]
+    for t in types:
+        if rawtypes[0].find(t) > -1:
+            gametypes += [t]
     if len(gametypes) == 0:
         gametypes = ['Uncategorized']
     return gametypes
