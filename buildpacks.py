@@ -22,26 +22,13 @@ def main():
 def start_package():
     global conn
     parameters = raw_input('Parameters: ')
-    #Check for debug mode
-    if parameters.find('d') > -1:
-        log = debug_enable(parameters)
-    else:
-        log = 0
     #Check for category selection mode. 'q' takes priority over 'c'
     if parameters.find('q') > -1:
         CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
-        #Check for single directory mode. Only works if 'q' is also specified.
-        if parameters.find('l'):
-            directories = [raw_input('Limit output to directory: ')]
-            while (len(re.findall(directories[0], '[\/*?:"<>|]')) > 0) or (directories[0] == ['']):
-                directories = [raw_input('Invalid directory name. Please choose another name: ')]
     elif parameters.find('c') > -1:
         CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
     else:
         CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
-    #Turns off the rating subdirectories
-    if parameters.find('r'):
-        rateoff = 1
     
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
@@ -59,7 +46,7 @@ def start_package():
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
             print "Build listing for " + cat.replace('_',' ') + " failed."
-    get_builds_and_write(buildlist, log, directories, rateoff)
+    get_builds_and_write(buildlist, log, directories, parameters)
     print "Script complete."
     
 def get_builds_and_write(pagelist, log, directories = [], rateoff = 0):
@@ -75,28 +62,32 @@ def get_builds_and_write(pagelist, log, directories = [], rateoff = 0):
             conn.close()
             if response.status == 200:
                 # Grab the build info
-                gametypes = id_gametypes(page)
+                if parameters.find('l') > -1:
+                    gametypes = [raw_input('Limit output to directory: ')]
+                    while (len(re.findall(gametypes[0], '[\/*?:"<>|]')) > 0) or (gametypes[0] == ['']):
+                        gametypes = [raw_input('Invalid directory name. Please choose another name: ')]
+                else:
+                    gametypes = id_gametypes(page)
                 ratings = id_ratings(page)
                 codes = find_template_code(page)
                 # If no template codes found on the build page, skip the build
                 if len(codes) == 0:
                     print 'No template code found for ' + i + '. Skipped.'
                     continue
-                # Establish the directories to be used for the build. Step ignored if parameter 'l' used.
-                if directories == []:
-                    for typ in gametypes:
-                        if len(typ) > 3 and typ.find('team') == -1:
-                            typdir = './PvX Build Packs/' + typ.title()
-                        else:
-                            typdir = './PvX Build Packs/' + typ
-                        if not os.path.isdir(typdir):
-                            os.mkdir(typdir)
-                        if rateoff == 0:
-                            for rat in ratings:
-                                directories += [typdir + '/' + rat]
-                        else:
-                            directories += [typdir]
-                gbawdebugger(i, gametypes, ratings, codes, directories, log)
+                for typ in gametypes:
+                    if len(typ) > 3 and typ.find('team') == -1:
+                        typdir = './PvX Build Packs/' + typ.title()
+                    else:
+                        typdir = './PvX Build Packs/' + typ
+                    if not os.path.isdir(typdir):
+                        os.mkdir(typdir)
+                    if parameters.find('r') < 1:
+                        for rat in ratings:
+                            directories += [typdir + '/' + rat]
+                    else:
+                        directories += [typdir]
+                if parameters.find('d') > -1:
+                    gbawdebugger(i, gametypes, ratings, codes, directories, log)
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
@@ -133,15 +124,6 @@ def get_builds_and_write(pagelist, log, directories = [], rateoff = 0):
             else:
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
                 print i + " failed."
-
-def debug_enable(parameters):
-    if parameters.find('df') > -1:
-        print 'Debug output will write to buildpacksdebug.txt'
-        log = 1
-    else:
-        print 'Debug output will write to stdout.'
-        log = 1
-    return log
 
 def category_selection(ALLCATS):
     CATEGORIES = []
@@ -228,7 +210,7 @@ def httpfaildebugger(attempt, response, reason, headers):
         else:
             print 'Please enter \'y\' or \'n\'.'
 
-def gbawdebugger(build, gametypes, ratings, codes, directories, log = 0):
+def gbawdebugger(build, gametypes, ratings, codes, directories, log = 1):
     if log == 1:
         # Write to a file
         debuglog = open('./buildpacksdebug.txt', 'ab')
