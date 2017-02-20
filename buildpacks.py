@@ -68,7 +68,8 @@ def get_builds_and_write(pagelist, directories = [], parameters):
                         gametypes = [raw_input('Invalid directory name. Please choose another name: ')]
                 else:
                     gametypes = id_gametypes(page)
-                ratings = id_ratings(page)
+                if parameters.find('r') = -1:
+                    ratings = id_ratings(page)
                 codes = find_template_code(page)
                 # If no template codes found on the build page, skip the build
                 if len(codes) == 0:
@@ -87,7 +88,7 @@ def get_builds_and_write(pagelist, directories = [], parameters):
                     else:
                         directories += [typdir]
                 if parameters.find('d') > -1:
-                    gbawdebugger(i, gametypes, ratings, codes, directories, stdout)
+                    gbawdebugger(i, gametypes, ratings, codes, directories, parameters.find('s'))
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
