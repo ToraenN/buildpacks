@@ -30,14 +30,16 @@ def start_package():
     #Check for category selection mode. 'q' takes priority over 'c'
     if parameters.find('q') > -1:
         CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
+        #Check for single directory mode. Only works if 'q' is also specified.
         if parameters.find('l'):
             directories = [raw_input('Limit output to directory: ')]
-            while len(re.findall(directories[0], '[\/*?:"<>|]')) > 0:
+            while (len(re.findall(directories[0], '[\/*?:"<>|]')) > 0) or (directories[0] == ['']):
                 directories = [raw_input('Invalid directory name. Please choose another name: ')]
     elif parameters.find('c') > -1:
         CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
     else:
         CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
+    #Turns off the rating subdirectories
     if parameters.find('r'):
         rateoff = 1
     
@@ -80,7 +82,7 @@ def get_builds_and_write(pagelist, log, directories = [], rateoff = 0):
                 if len(codes) == 0:
                     print 'No template code found for ' + i + '. Skipped.'
                     continue
-                # Establish the directories to be used for the build
+                # Establish the directories to be used for the build. Step ignored if parameter 'l' used.
                 if directories == []:
                     for typ in gametypes:
                         if len(typ) > 3 and typ.find('team') == -1:
@@ -92,6 +94,8 @@ def get_builds_and_write(pagelist, log, directories = [], rateoff = 0):
                         if rateoff == 0:
                             for rat in ratings:
                                 directories += [typdir + '/' + rat]
+                        else:
+                            directories += [typdir]
                 gbawdebugger(i, gametypes, ratings, codes, directories, log)
                 for d in directories:
                     if not os.path.isdir(d):
