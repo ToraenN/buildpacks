@@ -46,10 +46,10 @@ def start_package():
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
             print "Build listing for " + cat.replace('_',' ') + " failed."
-    get_builds_and_write(buildlist, log, directories, parameters)
+    get_builds_and_write(buildlist, directories, parameters)
     print "Script complete."
     
-def get_builds_and_write(pagelist, log, directories = [], rateoff = 0):
+def get_builds_and_write(pagelist, directories = [], parameters):
     for i in pagelist:
         # Check to see if the build has an empty primary profession (would generate an invalid template code)
         if i.find('Any/') > -1:
@@ -62,7 +62,7 @@ def get_builds_and_write(pagelist, log, directories = [], rateoff = 0):
             conn.close()
             if response.status == 200:
                 # Grab the build info
-                if parameters.find('l') > -1:
+                if (parameters.find('l') > -1) and (parameters.find('q'):
                     gametypes = [raw_input('Limit output to directory: ')]
                     while (len(re.findall(gametypes[0], '[\/*?:"<>|]')) > 0) or (gametypes[0] == ['']):
                         gametypes = [raw_input('Invalid directory name. Please choose another name: ')]
@@ -87,7 +87,7 @@ def get_builds_and_write(pagelist, log, directories = [], rateoff = 0):
                     else:
                         directories += [typdir]
                 if parameters.find('d') > -1:
-                    gbawdebugger(i, gametypes, ratings, codes, directories, log)
+                    gbawdebugger(i, gametypes, ratings, codes, directories, stdout)
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
@@ -210,12 +210,12 @@ def httpfaildebugger(attempt, response, reason, headers):
         else:
             print 'Please enter \'y\' or \'n\'.'
 
-def gbawdebugger(build, gametypes, ratings, codes, directories, log = 1):
-    if log == 1:
+def gbawdebugger(build, gametypes, ratings, codes, directories, stdout):
+    if stdout == -1:
         # Write to a file
         debuglog = open('./buildpacksdebug.txt', 'ab')
         debuglog.write(build + '\r\n' + str(gametypes) + '\r\n' + str(ratings) + '\r\n' + str(codes) + '\r\n' + str(directories) + '\r\n----\r\n') 
-    elif log == 2:
+    else:
         # Display in the window
         print gametypes
         print ratings
