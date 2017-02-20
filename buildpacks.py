@@ -22,12 +22,7 @@ def main():
 def start_package():
     global conn
     parameters = raw_input('Parameters: ')
-    #Check for debug mode
-    if parameters.find('d') > -1:
-        log = debug_enable(parameters)
-    else:
-        log = 0
-    #Check for category selection mode. 'q' takes priority over 'c'
+    #Check for category selection mode. 'q' takes priority over 'c'. If neither, just grab the tested builds.
     if parameters.find('q') > -1:
         CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
     elif parameters.find('c') > -1:
@@ -51,10 +46,16 @@ def start_package():
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
             print "Build listing for " + cat.replace('_',' ') + " failed."
-    get_builds_and_write(buildlist, log)
+    get_builds_and_write(buildlist, parameters)
     print "Script complete."
     
-def get_builds_and_write(pagelist, log):
+def get_builds_and_write(pagelist, parameters):
+    # Check for limit directory mode
+    if parameters.find('l') > -1:
+        gametypes = [raw_input('Limit output to directory: ')]
+        while gametypes[0] == '' or (len(re.findall('[/\\\\*?:"<>|.]', gametypes[0])) > 0):
+            gametypes = [raw_input('Invalid directory name. Please choose another name: ')]
+
     for i in pagelist:
         # Check to see if the build has an empty primary profession (would generate an invalid template code)
         if i.find('Any/') > -1:
@@ -66,15 +67,16 @@ def get_builds_and_write(pagelist, log):
             page = response.read()
             conn.close()
             if response.status == 200:
-                # Grab the build info
-                gametypes = id_gametypes(page)
+                # Grab the build info, but prevent overwriting 'l' if it was set
+                if not parameters.find('l') > -1:
+                    gametypes = id_gametypes(page)
                 ratings = id_ratings(page)
                 codes = find_template_code(page)
                 # If no template codes found on the build page, skip the build
                 if len(codes) == 0:
                     print 'No template code found for ' + i + '. Skipped.'
                     continue
-                # Establish the directories to be used for the build
+                # Establish directories
                 directories = []
                 for typ in gametypes:
                     if len(typ) > 3 and typ.find('team') == -1:
@@ -83,9 +85,15 @@ def get_builds_and_write(pagelist, log):
                         typdir = './PvX Build Packs/' + typ
                     if not os.path.isdir(typdir):
                         os.mkdir(typdir)
-                    for rat in ratings:
-                        directories += [typdir + '/' + rat]
-                gbawdebugger(i, gametypes, ratings, codes, directories, log)
+                    # Check for no ratings mode
+                    if parameters.find('r') == -1:
+                        for rat in ratings:
+                            directories += [typdir + '/' + rat]
+                    else:
+                        directories += [typdir]
+                # Check for debug mode
+                if parameters.find('d') > -1:
+                    gbawdebugger(i, gametypes, ratings, codes, directories, parameters.find('s'))
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
@@ -122,15 +130,6 @@ def get_builds_and_write(pagelist, log):
             else:
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
                 print i + " failed."
-
-def debug_enable(parameters):
-    if parameters.find('df') > -1:
-        print 'Debug output will write to buildpacksdebug.txt'
-        log = 1
-    else:
-        print 'Debug output will write to stdout.'
-        log = 1
-    return log
 
 def category_selection(ALLCATS):
     CATEGORIES = []
@@ -217,12 +216,12 @@ def httpfaildebugger(attempt, response, reason, headers):
         else:
             print 'Please enter \'y\' or \'n\'.'
 
-def gbawdebugger(build, gametypes, ratings, codes, directories, log = 0):
-    if log == 1:
+def gbawdebugger(build, gametypes, ratings, codes, directories, stdout):
+    if stdout == -1:
         # Write to a file
         debuglog = open('./buildpacksdebug.txt', 'ab')
         debuglog.write(build + '\r\n' + str(gametypes) + '\r\n' + str(ratings) + '\r\n' + str(codes) + '\r\n' + str(directories) + '\r\n----\r\n') 
-    elif log == 2:
+    else:
         # Display in the window
         print gametypes
         print ratings
