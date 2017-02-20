@@ -4,7 +4,7 @@ This is a python 2.7.13 script for collecting all of the build template codes fo
 Danny provided the original version of this script (which can be found in the history on the script's PvXwiki page).
 
 # Initial Setup
-The script starts by asking the user for parameters. If none are entered, the script will select the 'All working PvP builds' and 'All working PvE builds' categories (all of the currently vetted builds). The paramters that can be entered are:
+The script starts by asking the user for parameters. If none are entered, the script will select the 'All working PvP builds' and 'All working PvE builds' categories (all of the currently vetted builds). The parameters that can be entered are:
 
 c : to have the program list all preprogrammed categories and ask the user which ones should be compiled from.
 
