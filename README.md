@@ -4,7 +4,7 @@ This is a python 2.7.13 script for collecting all of the build template codes fo
 Danny provided the original version of this script (which can be found in the history on the script's PvXwiki page).
 
 # Initial Setup
-The script starts by asking the user for parameters. If none are entered, the script will select the 'All working PvP builds' and 'All working PvE builds' categories (all of the currently vetted builds). The paramters that can be entered are:
+The script starts by asking the user for parameters. If none are entered, the script will select the 'All working PvP builds' and 'All working PvE builds' categories (all of the currently vetted builds). The parameters that can be entered are:
 
 c : to have the program list all preprogrammed categories and ask the user which ones should be compiled from.
 
@@ -17,6 +17,8 @@ r : removes the rating subdirectories. Builds are saved directly to the gametype
 d : enables the debugger for the build writing segment (see Debugging below). 
 
 s : to make the build-write debugger print to stdout instead of appending to the log file.
+
+The essential version of the script does not ask for any parameters and just collects the tested builds.
 
 # Program Flow
 The script then builds the list of pages by visiting each category (builds that show up in multiple categories are only added once), and then visits each page in that list. It retrieves from each page: all template codes, the rating, and the gametypes. Each build is then written to all relevant directories (Each gametype gets a directory with subdirectories for each rating - builds go only in the rating subdirectories) in the 'PvX Build Packs' folder.
