@@ -22,7 +22,7 @@ def main():
 def start_package():
     global conn
     parameters = raw_input('Parameters: ')
-    #Check for category selection mode. 'q' takes priority over 'c'
+    #Check for category selection mode. 'q' takes priority over 'c'. If neither, just grab the tested builds.
     if parameters.find('q') > -1:
         CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
     elif parameters.find('c') > -1:
@@ -67,7 +67,7 @@ def get_builds_and_write(pagelist, parameters):
             page = response.read()
             conn.close()
             if response.status == 200:
-                # Grab the build info
+                # Grab the build info, but prevent overwriting 'l' if it was set
                 if not parameters.find('l') > -1:
                     gametypes = id_gametypes(page)
                 ratings = id_ratings(page)
@@ -76,6 +76,7 @@ def get_builds_and_write(pagelist, parameters):
                 if len(codes) == 0:
                     print 'No template code found for ' + i + '. Skipped.'
                     continue
+                # Establish directories
                 directories = []
                 for typ in gametypes:
                     if len(typ) > 3 and typ.find('team') == -1:
