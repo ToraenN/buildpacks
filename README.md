@@ -18,6 +18,8 @@ d : enables the debugger for the build writing segment (see Debugging below).
 
 s : to make the build-write debugger print to stdout instead of appending to the log file.
 
+The essential version of the script does not ask for any parameters and just collects the tested builds.
+
 # Program Flow
 The script then builds the list of pages by visiting each category (builds that show up in multiple categories are only added once), and then visits each page in that list. It retrieves from each page: all template codes, the rating, and the gametypes. Each build is then written to all relevant directories (Each gametype gets a directory with subdirectories for each rating - builds go only in the rating subdirectories) in the 'PvX Build Packs' folder.
 
