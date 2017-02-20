@@ -74,8 +74,6 @@ def get_builds_and_write(pagelist):
                         os.mkdir(typdir)
                     for rat in ratings:
                         directories += [typdir + '/' + rat]
-                    else:
-                        directories += [typdir]
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
