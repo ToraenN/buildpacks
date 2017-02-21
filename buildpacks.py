@@ -70,7 +70,6 @@ def get_builds_and_write(pagelist, parameters):
                 # Grab the build info, but prevent overwriting 'l' if it was set
                 if parameters.find('l') == -1:
                     gametypes = id_gametypes(page)
-                # Only check the build's rating if 'r' is not set
                 ratings = id_ratings(page)
                 codes = find_template_code(page)
                 # If no template codes found on the build page, skip the build
