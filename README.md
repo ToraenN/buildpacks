@@ -12,7 +12,7 @@ q : to ask the user for a single category to compile. Takes priority over c.
 
 l : will limit the output directories to just a single user-defined directory.
 
-r : removes the rating subdirectories. Builds are saved directly to the gametype directories (or user-defined directory, if l was specified).
+r : removes the rating subdirectories. Builds are saved directly to the gametype directories (or user-defined directory, if l was specified). The rating is appended to the title of the build (or the team subdirectory for team builds).
 
 d : enables the debugger for the build writing segment (see Debugging below). 
 
