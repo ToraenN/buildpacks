@@ -84,19 +84,19 @@ def get_builds_and_write(pagelist):
                         num += 1
                         for d in directories:
                             #Adds the team folder
-                            teamdir = d + '/' + i.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+                            teamdir = file_name_sub(i, d)
                             if not os.path.isdir(teamdir):
                                 os.mkdir(teamdir)
-                            outfile = open(teamdir + '/' + (urllib.unquote(i)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + ' - ' + str(num) + '.txt','wb')
+                            outfile = open(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt','wb')
                             outfile.write(j)
                 else:
                     for d in directories:
                         # Check for a non-team build with both player and hero versions, and sort them appropriately
                         if len(codes) > 1 and ('hero' in gametypes) and ('general' in gametypes) and d.find('Hero') > -1:
-                            outfile = open(d + '/' + (urllib.unquote(i)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + ' - Hero.txt','wb')
+                            outfile = open(file_name_sub(i, d) + ' - Hero.txt','wb')
                             outfile.write(codes[1])
                         else:
-                            outfile = open(d + '/' + (urllib.unquote(i)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'') + '.txt','wb')
+                            outfile = open(file_name_sub(i, d) + '.txt','wb')
                             outfile.write(codes[0])
                 print i + " complete."
             elif response.status == 301:
@@ -109,8 +109,13 @@ def get_builds_and_write(pagelist):
                 print '301 redirection...'
             else:
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
-                print i + " failed."              
-                
+                print i + " failed."
+
+def file_name_sub(build, directory):
+    #Handles required substitutions for build filenames
+    filename = directory + '/' + (urllib.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+return filename
+
 def category_page_list(page, newlist):
     pagelist = re.findall(">Build:.*?<", page) + re.findall(">Archive:.*?<", page)
     current = []
