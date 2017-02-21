@@ -169,17 +169,21 @@ def find_template_code(page):
     return newlist
 
 def id_gametypes(page):
-    types = ['AB','FA','JQ','GvG','HA','RA','PvP team','general','farming','running','hero','SC','PvE team','CM']
-    rawtypes = re.findall('<div class="build-types">(.*?)</div>', page, re.DOTALL)
-    gametypes = []
+    # Finds the build-types div, and then extracts the tags. Two checks for: build-types div isn't found or if it has no tags in it.
+    builddiv = re.search('<div class="build-types">.*?</div>', page, re.DOTALL)
+    if not builddiv:
+        return ['Uncategorized']
+    rawtypes = re.findall('Pv[EP]<br />\w+', builddiv.group())
     if len(rawtypes) == 0:
-        pass
-    else:
-        for t in types:
-            if rawtypes[0].find(t) > -1:
-                gametypes += [t]
-    if len(gametypes) == 0:
-        gametypes = ['Uncategorized']
+        return ['Uncategorized']
+    # Build the gametypes list based on the tags
+    gametypes = []
+    for t in rawtypes:
+        print 't: ' + str(t)
+        if t.find('team') > -1:
+            gametypes += [re.sub('<br />', ' ', t)]
+        else:
+            gametypes += [re.sub('Pv[EP]<br />', '', t)]
     return gametypes
 
 def id_ratings(page): 
