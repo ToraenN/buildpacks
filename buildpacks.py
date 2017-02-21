@@ -68,7 +68,7 @@ def get_builds_and_write(pagelist, parameters):
             conn.close()
             if response.status == 200:
                 # Grab the build info, but prevent overwriting 'l' if it was set
-                if not parameters.find('l') > -1:
+                if parameters.find('l') == -1:
                     gametypes = id_gametypes(page)
                 ratings = id_ratings(page)
                 codes = find_template_code(page)
@@ -89,8 +89,10 @@ def get_builds_and_write(pagelist, parameters):
                     if parameters.find('r') == -1:
                         for rat in ratings:
                             directories += [typdir + '/' + rat]
+                        rateinname = ''
                     else:
                         directories += [typdir]
+                        rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
                 # Check for debug mode
                 if parameters.find('d') > -1:
                     gbawdebugger(i, gametypes, ratings, codes, directories, parameters.find('s'))
@@ -104,7 +106,7 @@ def get_builds_and_write(pagelist, parameters):
                         num += 1
                         for d in directories:
                             #Adds the team folder
-                            teamdir = file_name_sub(i, d)
+                            teamdir = file_name_sub(i, d) + rateinname
                             if not os.path.isdir(teamdir):
                                 os.mkdir(teamdir)
                             outfile = open(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt','wb')
@@ -113,10 +115,10 @@ def get_builds_and_write(pagelist, parameters):
                     for d in directories:
                         # Check for a non-team build with both player and hero versions, and sort them appropriately
                         if len(codes) > 1 and ('hero' in gametypes) and ('general' in gametypes) and d.find('Hero') > -1:
-                            outfile = open(file_name_sub(i, d) + ' - Hero.txt','wb')
+                            outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','wb')
                             outfile.write(codes[1])
                         else:
-                            outfile = open(file_name_sub(i, d) + '.txt','wb')
+                            outfile = open(file_name_sub(i, d) + rateinname + '.txt','wb')
                             outfile.write(codes[0])
                 print i + " complete."
             elif response.status == 301:
@@ -179,7 +181,6 @@ def id_gametypes(page):
     # Build the gametypes list based on the tags
     gametypes = []
     for t in rawtypes:
-        print 't: ' + str(t)
         if t.find('team') > -1:
             gametypes += [re.sub('<br />', ' ', t)]
         else:
