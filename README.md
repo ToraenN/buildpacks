@@ -1,5 +1,6 @@
 # buildpacks.py
-The build pack script for PvXwiki
+The build pack script for PvXwiki.
+
 This is a python 2.7.13 script for collecting all of the build template codes for given categories on the wiki.
 Danny provided the original version of this script (which can be found in the history on the script's PvXwiki page).
 
