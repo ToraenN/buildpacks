@@ -19,6 +19,10 @@ d : enables the debugger for the build writing segment (see Debugging below).
 
 s : to make the build-write debugger print to stdout instead of appending to the log file.
 
+w : writes the progress messages to a text file.
+
+z : blocks most of the progress messages from standard output. Errors are still displayed, as is the build-write debugger if 's' was specified.
+
 The essential version of the script does not ask for any parameters and just collects the tested builds.
 
 # Program Flow
