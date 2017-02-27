@@ -25,7 +25,8 @@ def main():
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
     
-    buildlist = []
+    # Make the list of build pages to visit
+    pagelist = []
     for cat in CATEGORIES:
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
         print "Assembling build list for " + catname.replace('_',' ') + "..."
@@ -37,15 +38,13 @@ def main():
         if continuestr:
             CATEGORIES += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
-            buildlist = category_page_list(page, buildlist)
+            buildlist = category_page_list(page, pagelist)
             print "Builds from " + catname.replace('_',' ') + " added to list!"
         else:
             print "Build listing for " + catname.replace('_',' ') + " failed."
-    print str(len(buildlist)) + ' builds found!'
-    get_builds_and_write(buildlist)
-    print "Script complete."
+    print str(len(pagelist)) + ' builds found!'
     
-def get_builds_and_write(pagelist):
+    # And finally start working on the builds
     for i in pagelist:
         # Check to see if the build has an empty primary profession (would generate an invalid template code)
         buildname = urllib.unquote(i)
@@ -112,6 +111,7 @@ def get_builds_and_write(pagelist):
             print '301 redirection...'
         else:
             print i + " failed."
+    print "Script complete."
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
