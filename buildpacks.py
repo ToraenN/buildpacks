@@ -36,7 +36,7 @@ def start_package():
     buildlist = []
     for cat in CATEGORIES:
         print "Assembling build list for " + cat.replace('_',' ') + "..."
-        conn.request('GET', '/Category:' + cat)
+        conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         response = conn.getresponse()
         page = response.read()
         conn.close()
@@ -155,12 +155,10 @@ def category_selection(ALLCATS):
     return CATEGORIES                
                 
 def category_page_list(page, newlist):
-    pagelist = re.findall(">Build:.*?<", page) + re.findall(">Archive:.*?<", page)
-    current = []
+    pagelist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
     for i in pagelist:
-        current = i.replace('?','').replace('>','').replace('<','').replace('&quot;','"')
-        if not current in newlist:
-            newlist += [current]
+        if not i in newlist:
+            newlist += [i]
     return newlist
 
 def find_template_code(page):
