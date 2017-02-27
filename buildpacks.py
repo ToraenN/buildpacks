@@ -7,21 +7,21 @@ import os.path
 import urllib
 
 conn = httplib.HTTPConnection('gwpvx.gamepedia.com')
+parameters = raw_input('Parameters: ')
 
 def main():
-    print
     conn.request('GET', '/PvX_wiki')
     r1 = conn.getresponse()
     conn.close()
     if r1.status == 200:
-        print "Holy shit! Curse is actually working. Now let's start getting that build data."
+        print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
         start_package()
     else:
         httpfaildebugger('Start', r1.status, r1.response, r1.getheaders())
 
 def start_package():
     global conn
-    parameters = raw_input('Parameters: ')
+    global parameters
     #Check for category selection mode. 'q' takes priority over 'c'. If neither, just grab the tested builds.
     if parameters.find('q') > -1:
         CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
@@ -36,7 +36,7 @@ def start_package():
     buildlist = []
     for cat in CATEGORIES:
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
-        print "Assembling build list for " + catname.replace('_',' ') + "..."
+        print_log("Assembling build list for " + catname.replace('_',' ') + "...")
         conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         response = conn.getresponse()
         page = response.read()
@@ -46,15 +46,15 @@ def start_package():
             CATEGORIES += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
             buildlist = category_page_list(page, buildlist)
-            print "Builds from " + catname.replace('_',' ') + " added to list!"
+            print_log("Builds from " + catname.replace('_',' ') + " added to list!")
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
-            print "Build listing for " + catname.replace('_',' ') + " failed."
-    print str(len(buildlist)) + ' builds found!'
-    get_builds_and_write(buildlist, parameters)
-    print "Script complete."
+            print_log("Build listing for " + catname.replace('_',' ') + " failed.")
+    print_log(str(len(buildlist)) + ' builds found!', 'yes')
+    get_builds_and_write(buildlist)
+    print_log("Script complete.", 'yes')
     
-def get_builds_and_write(pagelist, parameters):
+def get_builds_and_write(pagelist):
     # Check for limit directory mode
     if parameters.find('l') > -1:
         gametypes = [raw_input('Limit output to directory: ')]
@@ -64,9 +64,9 @@ def get_builds_and_write(pagelist, parameters):
     for i in pagelist:
         # Check to see if the build has an empty primary profession (would generate an invalid template code)
         if i.find('Any/') > -1:
-            print i + " skipped (empty primary profession)."
+            print_log(i + " skipped (empty primary profession).")
         else:
-            print "Attempting " + (urllib.unquote(i)).replace('_',' ') + "..."
+            print_log("Attempting " + (urllib.unquote(i)).replace('_',' ') + "...")
             conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
             response = conn.getresponse()
             page = response.read()
@@ -79,7 +79,7 @@ def get_builds_and_write(pagelist, parameters):
                 codes = find_template_code(page)
                 # If no template codes found on the build page, skip the build
                 if len(codes) == 0:
-                    print 'No template code found for ' + i + '. Skipped.'
+                    print_log('No template code found for ' + i + '. Skipped.')
                     continue
                 # Establish directories
                 directories = []
@@ -100,7 +100,7 @@ def get_builds_and_write(pagelist, parameters):
                         rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
                 # Check for debug mode
                 if parameters.find('d') > -1:
-                    gbawdebugger(i, gametypes, ratings, codes, directories, parameters.find('s'))
+                    gbawdebugger(i, gametypes, ratings, codes, directories)
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
@@ -125,7 +125,7 @@ def get_builds_and_write(pagelist, parameters):
                         else:
                             outfile = open(file_name_sub(i, d) + rateinname + '.txt','wb')
                             outfile.write(codes[0])
-                print i + " complete."
+                print_log(i + " complete.")
             elif response.status == 301:
                 # Inserts the redirected build name into the pagelist array so it is done next
                 headers = str(response.getheaders())
@@ -133,10 +133,10 @@ def get_builds_and_write(pagelist, parameters):
                 newpagename = newpagestr[0].replace('gwpvx.gamepedia.com/','').replace("')",'').replace('_',' ')
                 newpagepos = pagelist.index(i) + 1
                 pagelist.insert(newpagepos, newpagename)
-                print '301 redirection...'
+                print_log('301 redirection...')
             else:
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
-                print i + " failed."
+                print_log(i + " failed.")
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
@@ -153,9 +153,9 @@ def category_selection(ALLCATS):
     if len(CATEGORIES) < 1:
         answer = raw_input('Well what DO you want to compile? ')
         if answer == '':
-            print 'No category entered.'
+            print_log('No category entered.', 'yes')
         else:
-            print 'I hope you typed that correctly.'
+            print_log('I hope you typed that correctly.', 'yes')
             CATEGORIES += [answer.replace(' ','_')]
     return CATEGORIES                
                 
@@ -211,35 +211,42 @@ def id_ratings(page):
         ratings = ['Nonrated']
     return ratings
 
+def print_log(string, alwaysdisplay = 'no'):
+    if (parameters.find('z') == -1) or (alwaysdisplay == 'yes'):
+        print string
+    if parameters.find('w') > -1:
+        textlog = open('./buildpackslog.txt', 'ab')
+        textlog.write(string + '\r\n')
+
 def httpfaildebugger(attempt, response, reason, headers):
     debuglog = open('./buildpackshttpdebug.txt', 'ab')
     debuglog.write(str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n' + '----' + '\r\n')
-    print 'HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason)
+    print_log('HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason), 'yes')
     if attempt == 'Start':
-        print "Curse's servers are (probably) down. Try again later."
+        print_log("Curse's servers are (probably) down. Try again later.", 'yes')
         raise SystemExit()
     answer = ''
     while not answer == ('y' or 'n'):
         answer = raw_input('Do you wish to continue the script? ' + str(attempt) + ' will be skipped. (y/n) ')
         if answer == 'y':
-            print 'Ok, continuing...'
+            print_log('Ok, continuing...', 'yes')
         elif answer == 'n':
-            print 'Ok, exiting...'
+            print_log('Ok, exiting...', 'yes')
             raise SystemExit()
         else:
-            print 'Please enter \'y\' or \'n\'.'
+            print_log('Please enter \'y\' or \'n\'.', 'yes')
 
-def gbawdebugger(build, gametypes, ratings, codes, directories, stdout):
-    if stdout == -1:
+def gbawdebugger(build, gametypes, ratings, codes, directories):
+    if parameters.find('s') == -1:
         # Write to a file
         debuglog = open('./buildpacksdebug.txt', 'ab')
         debuglog.write(build + '\r\n' + str(gametypes) + '\r\n' + str(ratings) + '\r\n' + str(codes) + '\r\n' + str(directories) + '\r\n----\r\n') 
     else:
         # Display in the window
-        print gametypes
-        print ratings
-        print codes
-        print directories
+        print_log(gametypes, 'yes')
+        print_log(ratings, 'yes')
+        print_log(codes, 'yes')
+        print_log(directories, 'yes')
 
 if __name__ == "__main__":
     main()
