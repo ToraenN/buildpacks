@@ -29,18 +29,23 @@ def start_package():
     
     buildlist = []
     for cat in CATEGORIES:
-        print "Assembling build list for " + cat.replace('_',' ') + "..."
+        catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
+        print "Assembling build list for " + catname.replace('_',' ') + "..."
         conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         response = conn.getresponse()
         page = response.read()
         conn.close()
+        continuestr = re.search(r'(page\|.*\|.*)",', page)
+        if continuestr:
+            CATEGORIES += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
             buildlist = category_page_list(page, buildlist)
-            print "Builds from " + cat.replace('_',' ') + " added to list!"
+            print "Builds from " + catname.replace('_',' ') + " added to list!"
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
-            print "Build listing for " + cat.replace('_',' ') + " failed."
-    get_builds_and_write(buildlist)
+            print "Build listing for " + catname.replace('_',' ') + " failed."
+    print str(len(buildlist)) + ' builds found!'
+    get_builds_and_write(buildlist, parameters)
     print "Script complete."
     
 def get_builds_and_write(pagelist):
