@@ -120,7 +120,7 @@ def category_page_list(page, newlist):
     pagelist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
     for i in pagelist:
         if not i in newlist:
-            newlist += [i]
+            newlist += [i.replace('\\','')]
     return newlist
 
 def find_template_code(page):
