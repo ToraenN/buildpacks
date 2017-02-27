@@ -114,7 +114,7 @@ def get_builds_and_write(pagelist):
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
     filename = directory + '/' + (urllib.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
-return filename
+    return filename
 
 def category_page_list(page, newlist):
     pagelist = re.findall(">Build:.*?<", page) + re.findall(">Archive:.*?<", page)
@@ -143,12 +143,11 @@ def id_gametypes(page):
     # Build the gametypes list based on the tags
     gametypes = []
     for t in rawtypes:
-        print 't: ' + str(t)
         if t.find('team') > -1:
             gametypes += [re.sub('<br />', ' ', t)]
         else:
             gametypes += [re.sub('Pv[EP]<br />', '', t)]
-return gametypes
+    return gametypes
 
 def id_ratings(page): 
     ratings = []
