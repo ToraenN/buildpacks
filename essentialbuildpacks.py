@@ -32,13 +32,13 @@ def main():
         print "Assembling build list for " + catname.replace('_',' ') + "..."
         conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         response = conn.getresponse()
-        page = response.read()
+        catpage = response.read()
         conn.close()
-        continuestr = re.search(r'(page\|.*\|.*)",', page)
+        continuestr = re.search(r'(page\|.*\|.*)",', catpage)
         if continuestr:
             CATEGORIES += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
-            buildlist = category_page_list(page, pagelist)
+            buildlist = category_page_list(catpage, pagelist)
             print "Builds from " + catname.replace('_',' ') + " added to list!"
         else:
             print "Build listing for " + catname.replace('_',' ') + " failed."
@@ -60,7 +60,7 @@ def main():
             # Grab the build info
             gametypes = id_gametypes(page)
             ratings = id_ratings(page)
-            codes = find_template_code(page)
+            codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
             # If no template codes found on the build page, skip the build
             if len(codes) == 0:
                 print 'No template code found for ' + buildname + '. Skipped.'
@@ -124,13 +124,6 @@ def category_page_list(page, newlist):
         current = i.replace('\\','')
         if not current in newlist:
             newlist += [current]
-    return newlist
-
-def find_template_code(page):
-    codelist = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
-    newlist = []
-    for i in codelist:
-        newlist += [i]
     return newlist
 
 def id_gametypes(page):
