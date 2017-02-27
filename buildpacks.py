@@ -35,12 +35,14 @@ def start_package():
     
     buildlist = []
     for cat in CATEGORIES:
+        # This done so you don't have a massive page id displayed for category continuations.
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
         print_log("Assembling build list for " + catname.replace('_',' ') + "...")
         conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         response = conn.getresponse()
         page = response.read()
         conn.close()
+        # Check if a continuation was offered due to the category having more members than the display limit
         continuestr = re.search(r'(page\|.*\|.*)",', page)
         if continuestr:
             CATEGORIES += [catname + '&cmcontinue=' + continuestr.group(1)]
@@ -162,8 +164,9 @@ def category_selection(ALLCATS):
 def category_page_list(page, newlist):
     pagelist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
     for i in pagelist:
-        if not i in newlist:
-            newlist += [i.replace('\\','')]
+        current = i.replace('\\','')
+        if not current in newlist:
+            newlist += [current]
     return newlist
 
 def find_template_code(page):
@@ -225,6 +228,7 @@ def httpfaildebugger(attempt, response, reason, headers):
     if attempt == 'Start':
         print_log("Curse's servers are (probably) down. Try again later.", 'yes')
         raise SystemExit()
+    # Require a definitive answer from the user
     answer = ''
     while not answer == ('y' or 'n'):
         answer = raw_input('Do you wish to continue the script? ' + str(attempt) + ' will be skipped. (y/n) ')
