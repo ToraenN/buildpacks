@@ -19,18 +19,30 @@ def main():
         print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
     else:
         httpfaildebugger('Start', r1.status, r1.response, r1.getheaders())
-        
+
     #Check for category selection mode. 'q' takes priority over 'c'. If neither, just grab the tested builds.
     if parameters.find('q') > -1:
         CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
     elif parameters.find('c') > -1:
         CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
+        if not 'All_working_PvP_builds' in CATEGORIES:
+            CATEGORIES += category_selection(['All_working_AB_builds', 'All_working_FA_builds', 'All_working_JQ_builds', 'All_working_RA_builds', 'All_working_GvG_builds', 'All_working_HA_builds', 'All_working_PvP_team_builds'])
+        if not 'All_working_PvE_builds' in CATEGORIES:
+            CATEGORIES += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds', ])
+        # If no categories were selected, give the opportunity for a custom category input.
+        if len(CATEGORIES) < 1:
+            answer = raw_input('Well what DO you want to compile? ')
+            if answer == '':
+                print_log('No category entered.', 'yes')
+            else:
+                print_log('I hope you typed that correctly.', 'yes')
+                CATEGORIES += [answer.replace(' ','_')]
     else:
         CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
-    
+
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
-    
+
     pagelist = []
     for cat in CATEGORIES:
         # This done so you don't have a massive page id displayed for category continuations.
@@ -57,7 +69,7 @@ def main():
         gametypes = [raw_input('Limit output to directory: ')]
         while gametypes[0] == '' or (len(re.findall('[/\\\\*?:"<>|.]', gametypes[0])) > 0):
             gametypes = [raw_input('Invalid directory name. Please choose another name: ')]
-            
+
     # Process the builds
     for i in pagelist:
         # Check to see if the build has an empty primary profession (would generate an invalid template code)
@@ -136,7 +148,7 @@ def main():
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
                 print_log(i + " failed.")
     print_log("Script complete.", 'yes')
-    
+
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
     filename = directory + '/' + (urllib.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
@@ -148,16 +160,8 @@ def category_selection(ALLCATS):
         answer = raw_input('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
         if answer == 'y':
             CATEGORIES += [a]
-    # If no categories were selected, give the opportunity for a custom category input.
-    if len(CATEGORIES) < 1:
-        answer = raw_input('Well what DO you want to compile? ')
-        if answer == '':
-            print_log('No category entered.', 'yes')
-        else:
-            print_log('I hope you typed that correctly.', 'yes')
-            CATEGORIES += [answer.replace(' ','_')]
-    return CATEGORIES                
-                
+    return CATEGORIES
+
 def category_page_list(page, newlist):
     pagelist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
     for i in pagelist:
