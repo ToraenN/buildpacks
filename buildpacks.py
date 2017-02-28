@@ -73,7 +73,7 @@ def main():
     # Process the builds
     for i in pagelist:
         # Check to see if the build has an empty primary profession (would generate an invalid template code)
-        if i.find('Any/') > -1:
+        if (i.find('Any/') > -1) and (parameters.find('a') == -1):
             print_log(i + " skipped (empty primary profession).")
         else:
             print_log("Attempting " + (urllib.unquote(i)).replace('_',' ') + "...")
