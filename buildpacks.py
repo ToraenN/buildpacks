@@ -10,18 +10,16 @@ conn = httplib.HTTPConnection('gwpvx.gamepedia.com')
 parameters = raw_input('Parameters: ')
 
 def main():
+    global conn
+    global parameters
     conn.request('GET', '/PvX_wiki')
     r1 = conn.getresponse()
     conn.close()
     if r1.status == 200:
         print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
-        start_package()
     else:
         httpfaildebugger('Start', r1.status, r1.response, r1.getheaders())
-
-def start_package():
-    global conn
-    global parameters
+        
     #Check for category selection mode. 'q' takes priority over 'c'. If neither, just grab the tested builds.
     if parameters.find('q') > -1:
         CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
@@ -33,7 +31,7 @@ def start_package():
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
     
-    buildlist = []
+    pagelist = []
     for cat in CATEGORIES:
         # This done so you don't have a massive page id displayed for category continuations.
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
@@ -47,22 +45,20 @@ def start_package():
         if continuestr:
             CATEGORIES += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
-            buildlist = category_page_list(page, buildlist)
+            pagelist = category_page_list(page, pagelist)
             print_log("Builds from " + catname.replace('_',' ') + " added to list!")
         else:
             httpfaildebugger(cat, response.status, response.reason, response.getheaders())
             print_log("Build listing for " + catname.replace('_',' ') + " failed.")
-    print_log(str(len(buildlist)) + ' builds found!', 'yes')
-    get_builds_and_write(buildlist)
-    print_log("Script complete.", 'yes')
-    
-def get_builds_and_write(pagelist):
+    print_log(str(len(pagelist)) + ' builds found!', 'yes')
+
     # Check for limit directory mode
     if parameters.find('l') > -1:
         gametypes = [raw_input('Limit output to directory: ')]
         while gametypes[0] == '' or (len(re.findall('[/\\\\*?:"<>|.]', gametypes[0])) > 0):
             gametypes = [raw_input('Invalid directory name. Please choose another name: ')]
-
+            
+    # Process the builds
     for i in pagelist:
         # Check to see if the build has an empty primary profession (would generate an invalid template code)
         if i.find('Any/') > -1:
@@ -78,7 +74,7 @@ def get_builds_and_write(pagelist):
                 if parameters.find('l') == -1:
                     gametypes = id_gametypes(page)
                 ratings = id_ratings(page)
-                codes = find_template_code(page)
+                codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
                 # If no template codes found on the build page, skip the build
                 if len(codes) == 0:
                     print_log('No template code found for ' + i + '. Skipped.')
@@ -139,7 +135,8 @@ def get_builds_and_write(pagelist):
             else:
                 httpfaildebugger(i, response.status, response.reason, response.getheaders())
                 print_log(i + " failed.")
-
+    print_log("Script complete.", 'yes')
+    
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
     filename = directory + '/' + (urllib.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
@@ -167,13 +164,6 @@ def category_page_list(page, newlist):
         current = i.replace('\\','')
         if not current in newlist:
             newlist += [current]
-    return newlist
-
-def find_template_code(page):
-    codelist = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
-    newlist = []
-    for i in codelist:
-        newlist += [i]
     return newlist
 
 def id_gametypes(page):
