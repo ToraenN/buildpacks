@@ -44,9 +44,11 @@ Team builds are saved in their own subfolders and each template is named: Team -
 
 Non-team builds that have separate player and hero template codes will appropriately be sorted to the 'general' (player build) and 'hero' (hero build) folders.
 
-# Debugging
-The script has two debugging outputs: buildpackshttpdebug.txt (for HTTPConnection errors) and buildpacksdebug.txt (for the build-writing portion of the script).
+# Logging
+The script has three logging outputs: buildpackshttpdebug.txt (for HTTPConnection errors), buildpacksdebug.txt (for the build-writing portion of the script), and buildpackslog.txt (for the messages printed to standard output).
 
 The http log records the attempt (the starting check, the category, or the build), the response code, the response reason, and the headers returned. The http debugger is only called when the response is something other than a 200 code (reason: OK) and is not called on a 301 code (reason: Moved Permanently) for build pages (the redirect is followed).
 
 The build-writing log records the build attempted, the gametypes found, the ratings found, the build template codes found, and the directories created and saved to.
+
+The standard output log records all of the printed messages, but does not capture any of the prompts or answers to them.
