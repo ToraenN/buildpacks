@@ -204,6 +204,8 @@ def id_ratings(page):
         ratings += ['Testing']
     elif page.find('been archived') > -1:
         ratings += ['Archived']
+    elif page.find('File:Image_Abandoned.jpg') > -1:
+        ratings += ['Abandoned']
     if ratings == []:
         ratings = ['Nonrated']
     return ratings
