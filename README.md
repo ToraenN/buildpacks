@@ -4,8 +4,16 @@ The build pack script for PvXwiki.
 This is a python 2.7.13 script for collecting all of the build template codes for given categories on the wiki.
 Danny provided the original version of this script (which can be found in the history on the script's PvXwiki page).
 
-# Initial Setup
-The script starts by asking the user for parameters. If none are entered, the script will select the 'All working PvP builds' and 'All working PvE builds' categories (all of the currently vetted builds). The parameters that can be entered are:
+# Program Flow
+1. At start the script asks for parameters from the user and checks if the wiki can be reached. 
+2. If successful, then the script builds the list of builds to compile by visiting each category (builds that show up in multiple categories are only added once).
+3. It visits each build page in that list. It retrieves from each page: all template codes, the rating, and the gametypes. 
+4. Each build is then written to all relevant directories (Each gametype gets a directory with subdirectories for each rating - builds go only in the rating subdirectories) in the 'PvX Build Packs' folder. 
+
+Parameters modify this basic program flow as follows.
+
+# Parameters
+If none are entered, the script will select the 'All working PvP builds' and 'All working PvE builds' categories (all of the currently vetted builds) and process them as stated in the Program Flow section. The parameters that can be entered are:
 
 a : to save builds with an empty primary profession because some build editor programs can read them.
 
@@ -27,13 +35,10 @@ z : blocks most of the progress messages from standard output. Errors are still 
 
 The essential version of the script does not ask for any parameters and just collects the tested builds.
 
-# Program Flow
-The script then builds the list of pages by visiting each category (builds that show up in multiple categories are only added once), and then visits each page in that list. It retrieves from each page: all template codes, the rating, and the gametypes. Each build is then written to all relevant directories (Each gametype gets a directory with subdirectories for each rating - builds go only in the rating subdirectories) in the 'PvX Build Packs' folder.
-
 # Notes
 The script only recognizes builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
 
-It will skip any builds that have an open primary profession (Guild Wars does not recognize template codes that lack a primary profession so there is no point in saving them).
+By default it will skip any builds that have an open primary profession (Guild Wars does not recognize template codes that lack a primary profession).
 
 Team builds are saved in their own subfolders and each template is named: Team - Build Name - #.txt. The script does not pull the builds' names or profession prefixes from the page to name the file with.
 
