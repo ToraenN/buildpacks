@@ -21,15 +21,13 @@ c : to have the program list all preprogrammed categories and ask the user which
 
 q : to ask the user for a single category to compile. Takes priority over c.
 
-l : will limit the output directories to just a single user-defined directory.
+l : will limit the output directories to just a single user-defined directory ('user-directory/rating').
+
+p : sorts the builds by 'profession/gametype/rating' instead of 'gametype/rating'. Is overridden by 'l'. It is recommended to also specify 'r' to sort by just 'profession/gametype', but not required.
 
 r : removes the rating subdirectories. Builds are saved directly to the gametype directories (or user-defined directory, if 'l' was specified). The rating is appended to the title of the build (or the team subdirectory for team builds).
 
-d : enables the debugger for the build writing segment (see Debugging below). 
-
-s : to make the build-write debugger print to stdout instead of appending to the log file.
-
-w : writes the progress messages to a text file.
+w : writes the progress messages and build information + directories to the text file normally reserved for HTTPConnection errors.
 
 z : blocks most of the progress messages from standard output. Errors are still displayed, as is the build-write debugger if 's' was specified.
 
@@ -45,10 +43,8 @@ Team builds are saved in their own subfolders and each template is named: Team -
 Non-team builds that have separate player and hero template codes will appropriately be sorted to the 'general' (player build) and 'hero' (hero build) folders.
 
 # Logging
-The script has three logging outputs: buildpackshttpdebug.txt (for HTTPConnection errors), buildpacksdebug.txt (for the build-writing portion of the script), and buildpackslog.txt (for the messages printed to standard output).
+Any HTTPConnection errors are automatically logged to 'buildpackslog.txt' for review. Optionally, you can specify 'w' to add all messages, prompts, answers, and per-build info to the log.
 
-The http log records the attempt (the starting check, the category, or the build), the response code, the response reason, and the headers returned. The http debugger is only called when the response is something other than a 200 code (reason: OK) and is not called on a 301 code (reason: Moved Permanently) for build pages (the redirect is followed).
+The httpdebugger function records the attempt (the starting check, the category, or the build), the response code, the response reason, and the headers returned. The http debugger is only called when the response is something other than a 200 code (reason: OK) and is not called on a 301 code (reason: Moved Permanently) for build pages (the redirect is followed).
 
 The build-writing log records the build attempted, the gametypes found, the ratings found, the build template codes found, and the directories created and saved to.
-
-The standard output log records all of the printed messages, but does not capture any of the prompts or answers to them.
