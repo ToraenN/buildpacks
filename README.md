@@ -29,7 +29,7 @@ r : removes the rating subdirectories. Builds are saved directly to the gametype
 
 w : writes the progress messages and build information + directories to the text file normally reserved for HTTPConnection errors.
 
-z : blocks most of the progress messages from standard output. Errors are still displayed, as is the build-write debugger if 's' was specified.
+z : blocks most of the progress messages from standard output. Errors are still displayed.
 
 The essential version of the script does not ask for any parameters and just collects the tested builds.
 
