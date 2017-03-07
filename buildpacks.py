@@ -22,7 +22,7 @@ def main():
 
     #Check for category selection mode. 'q' takes priority over 'c'. If neither, just grab the tested builds.
     if parameters.find('q') > -1:
-        CATEGORIES = [(raw_input('Enter category: ')).replace(' ','_')]
+        CATEGORIES = [(print_prompt('Enter category: ')).replace(' ','_')]
     elif parameters.find('c') > -1:
         CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
         if not 'All_working_PvP_builds' in CATEGORIES:
@@ -31,7 +31,7 @@ def main():
             CATEGORIES += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds', ])
         # If no categories were selected, give the opportunity for a custom category input.
         if len(CATEGORIES) < 1:
-            answer = raw_input('Well what DO you want to compile? ')
+            answer = print_prompt('Well what DO you want to compile? ')
             if answer == '':
                 print_log('No category entered.', 'yes')
             else:
@@ -66,9 +66,9 @@ def main():
 
     # Check for limit directory mode
     if parameters.find('l') > -1:
-        gametypes = [raw_input('Limit output to directory: ')]
+        gametypes = [print_prompt('Limit output to directory: ')]
         while gametypes[0] == '' or (len(re.findall('[/\\\\*?:"<>|.]', gametypes[0])) > 0):
-            gametypes = [raw_input('Invalid directory name. Please choose another name: ')]
+            gametypes = [print_prompt('Invalid directory name. Please choose another name: ')]
 
     # Process the builds
     for i in pagelist:
@@ -93,11 +93,22 @@ def main():
                     continue
                 # Establish directories
                 directories = []
+                # Profession sort mode (also disables rating folders); is overridden by 'l'
+                if (parameters.find('p') > -1) and (parameters.find('l') == -1):
+                    prefix = (re.search(r'Build:(\w+)\s*/*-*', i)).group(1)
+                    profdict = {'A':'Assassin/','Any':'Any/','D':'Dervish/','E':'Elementalist/','Me':'Mesmer/','Mo':'Monk/','N':'Necromancer/','P':'Paragon/','R':'Ranger/','Rt':'Ritualist/','Team':'Team/', 'W':'Warrior/'}
+                    profession = profdict[prefix]
+                    for p in profdict:
+                        if not os.path.isdir('./PvX Build Packs/' + profdict[p]):
+                            os.mkdir('./PvX Build Packs/' + profdict[p])
+                else:
+                    profession = ''
                 for typ in gametypes:
                     if len(typ) > 3 and typ.find('team') == -1:
-                        typdir = './PvX Build Packs/' + typ.title()
+                        typdir = './PvX Build Packs/' + profession + typ.title()
                     else:
-                        typdir = './PvX Build Packs/' + typ
+                        typdir = './PvX Build Packs/' + profession + typ
+                    # Create the top level directories
                     if not os.path.isdir(typdir):
                         os.mkdir(typdir)
                     # Check for no ratings mode
@@ -108,9 +119,10 @@ def main():
                     else:
                         directories += [typdir]
                         rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
-                # Check for debug mode
-                if parameters.find('d') > -1:
+                # If we're making a log file, inlcude the build info
+                if parameters.find('w') > -1:
                     gbawdebugger(i, gametypes, ratings, codes, directories)
+                # Create the bottom level directories
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
@@ -135,6 +147,7 @@ def main():
                         else:
                             outfile = open(file_name_sub(i, d) + rateinname + '.txt','wb')
                             outfile.write(codes[0])
+                outfile.close
                 print_log(i + " complete.")
             elif response.status == 301:
                 # Inserts the redirected build name into the pagelist array so it is done next
@@ -157,7 +170,7 @@ def file_name_sub(build, directory):
 def category_selection(ALLCATS):
     CATEGORIES = []
     for a in ALLCATS:
-        answer = raw_input('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
+        answer = print_prompt('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
         if answer == 'y':
             CATEGORIES += [a]
     return CATEGORIES
@@ -210,15 +223,24 @@ def id_ratings(page):
         ratings = ['Nonrated']
     return ratings
 
+def print_prompt(string):
+    answer = raw_input(string)
+    if parameters.find('w') > -1:
+        textlog = open('./buildpackslog.txt', 'ab')
+        textlog.write(string + answer + '\r\n')
+        textlog.close
+    return answer
+
 def print_log(string, alwaysdisplay = 'no'):
     if (parameters.find('z') == -1) or (alwaysdisplay == 'yes'):
         print string
     if parameters.find('w') > -1:
         textlog = open('./buildpackslog.txt', 'ab')
-        textlog.write(string + '\r\n')
+        textlog.write(str(string) + '\r\n')
+        textlog.close
 
 def httpfaildebugger(attempt, response, reason, headers):
-    debuglog = open('./buildpackshttpdebug.txt', 'ab')
+    debuglog = open('./buildpackslog.txt', 'ab')
     debuglog.write(str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n' + '----' + '\r\n')
     print_log('HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason), 'yes')
     if attempt == 'Start':
@@ -227,7 +249,7 @@ def httpfaildebugger(attempt, response, reason, headers):
     # Require a definitive answer from the user
     answer = ''
     while not answer == ('y' or 'n'):
-        answer = raw_input('Do you wish to continue the script? ' + str(attempt) + ' will be skipped. (y/n) ')
+        answer = print_prompt('Do you wish to continue the script? ' + str(attempt) + ' will be skipped. (y/n) ')
         if answer == 'y':
             print_log('Ok, continuing...', 'yes')
         elif answer == 'n':
@@ -237,16 +259,9 @@ def httpfaildebugger(attempt, response, reason, headers):
             print_log('Please enter \'y\' or \'n\'.', 'yes')
 
 def gbawdebugger(build, gametypes, ratings, codes, directories):
-    if parameters.find('s') == -1:
-        # Write to a file
-        debuglog = open('./buildpacksdebug.txt', 'ab')
-        debuglog.write(build + '\r\n' + str(gametypes) + '\r\n' + str(ratings) + '\r\n' + str(codes) + '\r\n' + str(directories) + '\r\n----\r\n') 
-    else:
-        # Display in the window
-        print_log(gametypes, 'yes')
-        print_log(ratings, 'yes')
-        print_log(codes, 'yes')
-        print_log(directories, 'yes')
+    textlog = open('./buildpackslog.txt', 'ab')
+    textlog.write('Build name: ' + build + '\r\nGametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
+    textlog.close
 
 if __name__ == "__main__":
     main()
