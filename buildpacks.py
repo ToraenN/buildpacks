@@ -93,8 +93,8 @@ def main():
                     continue
                 # Establish directories
                 directories = []
-                # Profession sort mode
-                if parameters.find('p') > -1:
+                # Profession sort mode (also disables rating folders); is overridden by 'l'
+                if (parameters.find('p') > -1) and (parameters.find('l') == -1):
                     prefix = (re.search(r'Build:(\w+)\s*/*-*', i)).group(1)
                     profdict = {'A':'Assassin/','Any':'Any/','D':'Dervish/','E':'Elementalist/','Me':'Mesmer/','Mo':'Monk/','N':'Necromancer/','P':'Paragon/','R':'Ranger/','Rt':'Ritualist/','Team':'Team/', 'W':'Warrior/'}
                     profession = profdict[prefix]
@@ -112,20 +112,20 @@ def main():
                     if not os.path.isdir(typdir):
                         os.mkdir(typdir)
                     # Check for no ratings mode
-                    if not parameters.find('r') > -1:
+                    if parameters.find('r') == -1:
                         for rat in ratings:
                             directories += [typdir + '/' + rat]
                         rateinname = ''
                     else:
                         directories += [typdir]
                         rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
+                # If we're making a log file, inlcude the build info
+                if parameters.find('w') > -1:
+                    gbawdebugger(i, gametypes, ratings, codes, directories)
                 # Create the bottom level directories
                 for d in directories:
                     if not os.path.isdir(d):
                         os.mkdir(d)
-                # Check for debug mode
-                if parameters.find('d') > -1:
-                    gbawdebugger(i, gametypes, ratings, codes, directories)
                 # Check to see if the build is a team build
                 if i.find('Team') >= 1 and len(codes) > 1:
                     num = 0
@@ -204,7 +204,7 @@ def id_ratings(page):
     ratings = []
     if page.find('This build is part of the current metagame.') > -1:
         ratings += ['Meta']
-    #A second if statement because builds can have both Meta and one of Good/Great (or they have one of the other tags)
+    #A second if statement because builds can have both Meta and one of Good/Great
     if page.find('in the range from 4.75') > -1:
         ratings += ['Great']
     elif page.find('in the range from 3.75') > -1:
@@ -236,7 +236,7 @@ def print_log(string, alwaysdisplay = 'no'):
         print string
     if parameters.find('w') > -1:
         textlog = open('./buildpackslog.txt', 'ab')
-        textlog.write(string + '\r\n')
+        textlog.write(str(string) + '\r\n')
         textlog.close
 
 def httpfaildebugger(attempt, response, reason, headers):
@@ -259,16 +259,9 @@ def httpfaildebugger(attempt, response, reason, headers):
             print_log('Please enter \'y\' or \'n\'.', 'yes')
 
 def gbawdebugger(build, gametypes, ratings, codes, directories):
-    # Write to a file
     textlog = open('./buildpackslog.txt', 'ab')
-    textlog.write(build + '\r\n' + str(gametypes) + '\r\n' + str(ratings) + '\r\n' + str(codes) + '\r\n' + str(directories) + '\r\n----\r\n')
+    textlog.write('Build name: ' + build + '\r\nGametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
     textlog.close
-    if parameters.find('s') > -1:
-        # Display in the window
-        print_log(gametypes, 'yes')
-        print_log(ratings, 'yes')
-        print_log(codes, 'yes')
-        print_log(directories, 'yes')
 
 if __name__ == "__main__":
     main()
