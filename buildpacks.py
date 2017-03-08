@@ -7,28 +7,44 @@ import os.path
 import urllib
 
 conn = httplib.HTTPConnection('gwpvx.gamepedia.com')
-parameters = raw_input('Parameters: ')
+parameters = raw_input('Parameters (h for help): ')
+while parameters.find('h') > -1:
+    print 'a: save Any/X builds.'
+    print 'c: list available categories.'
+    print 'l: limit to single output directory.'
+    print 'p: sort by profession.'
+    print 'q: single category entry.'
+    print 'r: removes rating sort.'
+    print 's: silent mode.'
+    print 'w: write log.'
+    parameters = raw_input('Parameters: ')
+if parameters.find('w') > -1:
+    textlog = open('./buildpackslog.txt', 'ab')
 
 def main():
     global conn
     global parameters
+    if parameters.find('w') > -1:
+        global textlog
     conn.request('GET', '/PvX_wiki')
     r1 = conn.getresponse()
     conn.close()
     if r1.status == 200:
         print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
     else:
-        httpfaildebugger('Start', r1.status, r1.response, r1.getheaders())
+        http_failure('Start', r1.status, r1.response, r1.getheaders())
 
     #Check for category selection mode. 'q' takes priority over 'c'. If neither, just grab the tested builds.
     if parameters.find('q') > -1:
         CATEGORIES = [(print_prompt('Enter category: ')).replace(' ','_')]
     elif parameters.find('c') > -1:
-        CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds', 'Archived_tested_builds', 'Trash_builds', 'Untested_testing_builds', 'Trial_Builds', 'Build_stubs', 'Abandoned', 'Costume_Brawl_builds'])
+        CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds'])
         if not 'All_working_PvP_builds' in CATEGORIES:
             CATEGORIES += category_selection(['All_working_AB_builds', 'All_working_FA_builds', 'All_working_JQ_builds', 'All_working_RA_builds', 'All_working_GvG_builds', 'All_working_HA_builds', 'All_working_PvP_team_builds'])
         if not 'All_working_PvE_builds' in CATEGORIES:
             CATEGORIES += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds', ])
+        if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n)'):
+            CATEGORIES += category_selection(['Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds'])
         # If no categories were selected, give the opportunity for a custom category input.
         if len(CATEGORIES) < 1:
             answer = print_prompt('Well what DO you want to compile? ')
@@ -60,7 +76,7 @@ def main():
             pagelist = category_page_list(page, pagelist)
             print_log("Builds from " + catname.replace('_',' ') + " added to list!")
         else:
-            httpfaildebugger(cat, response.status, response.reason, response.getheaders())
+            http_failure(cat, response.status, response.reason, response.getheaders())
             print_log("Build listing for " + catname.replace('_',' ') + " failed.")
     print_log(str(len(pagelist)) + ' builds found!', 'yes')
 
@@ -93,7 +109,7 @@ def main():
                     continue
                 # Establish directories
                 directories = []
-                # Profession sort mode (also disables rating folders); is overridden by 'l'
+                # Profession sort mode; is overridden by 'l'
                 if (parameters.find('p') > -1) and (parameters.find('l') == -1):
                     prefix = (re.search(r'Build:(\w+)\s*/*-*', i)).group(1)
                     profdict = {'A':'Assassin/','Any':'Any/','D':'Dervish/','E':'Elementalist/','Me':'Mesmer/','Mo':'Monk/','N':'Necromancer/','P':'Paragon/','R':'Ranger/','Rt':'Ritualist/','Team':'Team/', 'W':'Warrior/'}
@@ -121,7 +137,7 @@ def main():
                         rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
                 # If we're making a log file, inlcude the build info
                 if parameters.find('w') > -1:
-                    gbawdebugger(i, gametypes, ratings, codes, directories)
+                    textlog.write('Gametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
                 # Create the bottom level directories
                 for d in directories:
                     if not os.path.isdir(d):
@@ -158,9 +174,11 @@ def main():
                 pagelist.insert(newpagepos, newpagename)
                 print_log('301 redirection...')
             else:
-                httpfaildebugger(i, response.status, response.reason, response.getheaders())
+                http_failure(i, response.status, response.reason, response.getheaders())
                 print_log(i + " failed.")
     print_log("Script complete.", 'yes')
+    if parameters.find('w') > -1:
+        textlog.close
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
@@ -226,23 +244,19 @@ def id_ratings(page):
 def print_prompt(string):
     answer = raw_input(string)
     if parameters.find('w') > -1:
-        textlog = open('./buildpackslog.txt', 'ab')
         textlog.write(string + answer + '\r\n')
-        textlog.close
     return answer
 
 def print_log(string, alwaysdisplay = 'no'):
-    if (parameters.find('z') == -1) or (alwaysdisplay == 'yes'):
+    if (parameters.find('s') == -1) or (alwaysdisplay == 'yes'):
         print string
     if parameters.find('w') > -1:
-        textlog = open('./buildpackslog.txt', 'ab')
         textlog.write(str(string) + '\r\n')
-        textlog.close
 
-def httpfaildebugger(attempt, response, reason, headers):
-    debuglog = open('./buildpackslog.txt', 'ab')
-    debuglog.write(str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n' + '----' + '\r\n')
+def http_failure(attempt, response, reason, headers):
     print_log('HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason), 'yes')
+    if parameters.find('w') > -1:
+        textlog.write('----\r\n' + str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n----\r\n')
     if attempt == 'Start':
         print_log("Curse's servers are (probably) down. Try again later.", 'yes')
         raise SystemExit()
@@ -257,11 +271,6 @@ def httpfaildebugger(attempt, response, reason, headers):
             raise SystemExit()
         else:
             print_log('Please enter \'y\' or \'n\'.', 'yes')
-
-def gbawdebugger(build, gametypes, ratings, codes, directories):
-    textlog = open('./buildpackslog.txt', 'ab')
-    textlog.write('Build name: ' + build + '\r\nGametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
-    textlog.close
 
 if __name__ == "__main__":
     main()
