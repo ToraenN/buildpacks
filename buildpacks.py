@@ -255,7 +255,8 @@ def print_log(string, alwaysdisplay = 'no'):
 
 def http_failure(attempt, response, reason, headers):
     print_log('HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason), 'yes')
-    textlog.write('----\r\n' + str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n----\r\n')
+    if parameters.find('w') > -1:
+        textlog.write('----\r\n' + str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n----\r\n')
     if attempt == 'Start':
         print_log("Curse's servers are (probably) down. Try again later.", 'yes')
         raise SystemExit()
