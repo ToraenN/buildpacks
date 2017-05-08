@@ -51,12 +51,7 @@ def main():
             CATEGORIES += category_selection(['Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds'])
         # If no categories were selected, give the opportunity for a custom category input.
         if len(CATEGORIES) < 1:
-            answer = print_prompt('Well what DO you want to compile? ')
-            if answer == '':
-                print_log('No category entered.', 'yes')
-            else:
-                print_log('I hope you typed that correctly.', 'yes')
-                CATEGORIES += [answer.replace(' ','_')]
+            print_log("No categories selected.", "yes")
     else:
         CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
 
