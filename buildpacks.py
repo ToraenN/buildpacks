@@ -10,7 +10,7 @@ conn = httplib.HTTPConnection('gwpvx.gamepedia.com')
 parameters = raw_input('Parameters (h for help): ')
 while parameters.find('h') > -1:
     print 'a: save Any/X builds.'
-    print 'c: list and choose from commonly complied categories.'
+    print 'c: list and choose from preset categories.'
     print 'l: limit to single output directory.'
     print 'p: sort by profession.'
     print 'q: manual category entry. Enter as many categories as you want.'
@@ -36,11 +36,11 @@ def main():
 
     #Check for category selection mode. 'q' takes priority over 'c'. If neither, just grab the tested builds.
     if parameters.find('q') > -1:
-        manualcatentry = print_prompt('Enter category (leave blank to end entry):')
+        manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
         CATEGORIES = []
         while manualcatentry != '':
             CATEGORIES += [manualcatentry.replace(' ','_')]
-            manualcatentry = print_prompt('Enter category (leave blank to end entry):')
+            manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
     elif parameters.find('c') > -1:
         CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds'])
         if not 'All_working_PvP_builds' in CATEGORIES:
