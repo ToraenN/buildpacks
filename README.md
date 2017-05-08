@@ -25,7 +25,7 @@ l : will limit the output directories to just a single user-defined directory ('
 
 p : sorts the builds by 'profession/gametype/rating' instead of 'gametype/rating'. Is overridden by 'l'. It is recommended to also specify 'r' to sort by just 'profession/gametype', but not required.
 
-q : to ask the user for a single category to compile. Takes priority over c.
+q : to manually enter the categories to compile. Takes priority over c.
 
 r : removes the rating subdirectories. Builds are saved directly to the gametype directories (or user-defined directory, if 'l' was specified). The rating is appended to the title of the build (or the team subdirectory for team builds).
 
