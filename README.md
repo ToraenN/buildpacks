@@ -19,6 +19,10 @@ a : to save builds with an empty primary profession because some build editor pr
 
 c : to have the program list all preprogrammed categories and ask the user which ones should be compiled from.
 
+f : compiles Affected by Flux packs.
+
+g : removes the gametype sort.
+
 h : displays the list of available parameters. Any other parameters are ignored and the prompt is brought up again.
 
 l : will limit the output directories to just a single user-defined directory ('user-directory/rating').
@@ -27,7 +31,7 @@ p : sorts the builds by 'profession/gametype/rating' instead of 'gametype/rating
 
 q : to manually enter the categories to compile. Takes priority over c.
 
-r : removes the rating subdirectories. Builds are saved directly to the gametype directories (or user-defined directory, if 'l' was specified). The rating is appended to the title of the build (or the team subdirectory for team builds).
+r : removes the rating sort. Builds are saved directly to the gametype directories (or user-defined directory, if 'l' was specified). The rating is appended to the title of the build (or the team subdirectory for team builds).
 
 s : blocks most of the progress messages from standard output. Errors are still displayed.
 
