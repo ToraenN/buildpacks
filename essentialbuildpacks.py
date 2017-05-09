@@ -19,8 +19,8 @@ def main():
         print "Curse's servers are (probably) down. Try again later."
         raise SystemExit()
     
-    # Unfortunately PvXwiki lacks a unified working builds category
-    CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
+    # Unfortunately PvXwiki lacks a unified working builds category. Affected by Flux is needed to grab the auto-archiving builds (no sense running this every month if nothing's actually changed).
+    CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
     
     if not os.path.isdir('./PvX Build Packs'):
         os.mkdir('./PvX Build Packs')
