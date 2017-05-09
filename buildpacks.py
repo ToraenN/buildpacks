@@ -11,8 +11,10 @@ parameters = raw_input('Parameters (h for help): ')
 while parameters.find('h') > -1:
     print 'a: save Any/X builds.'
     print 'c: list and choose from preset categories.'
+    print 'f: build "Affected by Flux" packs.'
+    print 'g: remove gametype sort.'
     print 'l: limit to single output directory.'
-    print 'p: sort by profession.'
+    print 'p: add profession sort.'
     print 'q: manual category entry. Enter as many categories as you want.'
     print 'r: removes rating sort.'
     print 's: silent mode.'
@@ -34,29 +36,28 @@ def main():
     else:
         http_failure('Start', r1.status, r1.response, r1.getheaders())
 
-    #Check for category selection mode. 'q' takes priority over 'c'. If neither, just grab the tested builds.
-    if parameters.find('q') > -1:
+    #Check for category selection mode. 'f' > 'q' > 'c'. If none of these, just grab the tested builds.
+    CATEGORIES = []
+    if parameters.find('f') > -1:
+        #Note that 'f' also changes the pack layout later on, so this isn't purely redundant with 'q'.
+        CATEGORIES = ['Affected_by_Flux']
+    elif parameters.find('q') > -1:
         manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
-        CATEGORIES = []
         while manualcatentry != '':
             CATEGORIES += [manualcatentry.replace(' ','_')]
             manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
     elif parameters.find('c') > -1:
-        CATEGORIES = category_selection(['All_working_PvP_builds', 'All_working_PvE_builds'])
-        if not 'All_working_PvP_builds' in CATEGORIES:
+        if 'y' in print_prompt('Do you want any PvP builds? (y/n)'):
             CATEGORIES += category_selection(['All_working_AB_builds', 'All_working_FA_builds', 'All_working_JQ_builds', 'All_working_RA_builds', 'All_working_GvG_builds', 'All_working_HA_builds', 'All_working_PvP_team_builds'])
-        if not 'All_working_PvE_builds' in CATEGORIES:
-            CATEGORIES += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds', ])
+        if 'y' in print_prompt('Do you want any PvE builds? (y/n)'):
+            CATEGORIES += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds'])
         if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n)'):
             CATEGORIES += category_selection(['Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds'])
-        # If no categories were selected, give the opportunity for a custom category input.
         if len(CATEGORIES) < 1:
             print_log("No categories selected.", "yes")
     else:
-        CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds']
-
-    if not os.path.isdir('./PvX Build Packs'):
-        os.mkdir('./PvX Build Packs')
+        # Default to all currently vetted builds, including the auto-archiving Flux builds.
+        CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
 
     pagelist = []
     for cat in CATEGORIES:
@@ -79,68 +80,79 @@ def main():
             print_log("Build listing for " + catname.replace('_',' ') + " failed.")
     print_log(str(len(pagelist)) + ' builds found!', 'yes')
 
-    # Check for limit directory mode
+    # Limit directory mode
     if parameters.find('l') > -1:
-        gametypes = [print_prompt('Limit output to directory: ')]
-        while gametypes[0] == '' or (len(re.findall('[/\\\\*?:"<>|.]', gametypes[0])) > 0):
-            gametypes = [print_prompt('Invalid directory name. Please choose another name: ')]
+        limitdir = print_prompt('Limit output to directory: ')
+        while limitdir == '' or (len(re.findall('[/\\\\*?:"<>|.]', limitdir)) > 0):
+            limitdir = print_prompt('Invalid directory name. Please choose another name: ')
+    else:
+        limitdir = ''
 
     # Process the builds
     for i in pagelist:
-        # Check to see if the build has an empty primary profession (would generate an invalid template code)
-        if (i.find('Any/') > -1) and (parameters.find('a') == -1):
-            print_log(i + " skipped (empty primary profession).")
-        else:
-            print_log("Attempting " + (urllib.unquote(i)).replace('_',' ') + "...")
-            conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
-            response = conn.getresponse()
-            page = response.read()
-            conn.close()
-            if response.status == 200:
-                # Grab the build info, but prevent overwriting 'l' if it was set
-                if parameters.find('l') == -1:
-                    gametypes = id_gametypes(page)
-                ratings = id_ratings(page)
-                codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
-                # If no template codes found on the build page, skip the build
-                if len(codes) == 0:
-                    print_log('No template code found for ' + i + '. Skipped.')
-                    continue
-                # Establish directories
-                directories = []
-                # Profession sort mode; is overridden by 'l'
-                if (parameters.find('p') > -1) and (parameters.find('l') == -1):
-                    prefix = (re.search(r'Build:(\w+)\s*/*-*', i)).group(1)
-                    profdict = {'A':'Assassin/','Any':'Any/','D':'Dervish/','E':'Elementalist/','Me':'Mesmer/','Mo':'Monk/','N':'Necromancer/','P':'Paragon/','R':'Ranger/','Rt':'Ritualist/','Team':'Team/', 'W':'Warrior/'}
-                    profession = profdict[prefix]
-                    for p in profdict:
-                        if not os.path.isdir('./PvX Build Packs/' + profdict[p]):
-                            os.mkdir('./PvX Build Packs/' + profdict[p])
+        get_build_and_write(i, limitdir)
+    print_log("Script complete.", 'yes')
+    if parameters.find('w') > -1:
+        textlog.close
+
+def get_build_and_write(i, limitdir):
+    # Check to see if the build has an empty primary profession (would generate an invalid template code)
+    if (i.find('Any/') > -1) and (parameters.find('a') == -1):
+        print_log(i + " skipped (empty primary profession).")
+    else:
+        print_log("Attempting " + (urllib.unquote(i)).replace('_',' ') + "...")
+        conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
+        response = conn.getresponse()
+        page = response.read()
+        conn.close()
+        if response.status == 200:
+            # Grab the build info
+            gametypes = id_gametypes(page)
+            ratings = id_ratings(page)
+            codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
+            # If no template codes found on the build page, skip the build
+            if len(codes) == 0:
+                print_log('No template code found for ' + i + '. Skipped.')
+            else:
+                # Flux sort mode
+                if parameters.find('f') > -1:
+                    rfluxes = re.findall('Category:(Affected_by_\w*?)_Flux', page)
+                    fluxes = []
+                    for rf in rfluxes:
+                        fluxes += [rf.replace('_',' ')]
                 else:
-                    profession = ''
-                for typ in gametypes:
-                    if len(typ) > 3 and typ.find('team') == -1:
-                        typdir = './PvX Build Packs/' + profession + typ.title()
-                    else:
-                        typdir = './PvX Build Packs/' + profession + typ
-                    # Create the top level directories
-                    if not os.path.isdir(typdir):
-                        os.mkdir(typdir)
-                    # Check for no ratings mode
+                    fluxes = ['']
+                # Profession sort mode
+                if parameters.find('p') > -1:
+                    prefix = (re.search(r'Build:(\w+)\s*/*-*', i)).group(1)
+                    profdict = {'A':'Assassin','Any':'Any','D':'Dervish','E':'Elementalist','Me':'Mesmer','Mo':'Monk','N':'Necromancer','P':'Paragon','R':'Ranger','Rt':'Ritualist','Team':'Team', 'W':'Warrior'}
+                    profession = [profdict[prefix]]
+                else:
+                    profession = ['']
+                # Check for no ratings mode
+                if parameters.find('r') == -1:
+                    rateinname = ''
+                else:
+                    rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
+                # Create the directories
+                if parameters.find('l') == -1:
+                    dirlevels = []
+                    if parameters.find('f') > -1:
+                        dirlevels += [fluxes]
+                    if parameters.find('p') > -1:
+                        dirlevels += [profession]
+                    if parameters.find('g') == -1:
+                        dirlevels += [gametypes]
                     if parameters.find('r') == -1:
-                        for rat in ratings:
-                            directories += [typdir + '/' + rat]
-                        rateinname = ''
-                    else:
-                        directories += [typdir]
-                        rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
+                        dirlevels += [ratings]
+                    directories = directory_tree(dirlevels)
+                else:
+                    directories = ['./' + limitdir]
+                    if not os.path.isdir(directories[0]):
+                        os.mkdir(directories[0])
                 # If we're making a log file, inlcude the build info
                 if parameters.find('w') > -1:
                     textlog.write('Gametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
-                # Create the bottom level directories
-                for d in directories:
-                    if not os.path.isdir(d):
-                        os.mkdir(d)
                 # Check to see if the build is a team build
                 if i.find('Team') >= 1 and len(codes) > 1:
                     num = 0
@@ -156,28 +168,32 @@ def main():
                 else:
                     for d in directories:
                         # Check for a non-team build with both player and hero versions, and sort them appropriately
-                        if len(codes) > 1 and ('hero' in gametypes) and ('general' in gametypes) and d.find('Hero') > -1:
-                            outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','wb')
-                            outfile.write(codes[1])
+                        if (len(codes) > 1) and ('Hero' in gametypes) and ('General' in gametypes):
+                            if d.find('Hero') > -1:
+                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','wb')
+                                outfile.write(codes[1])
+                            elif parameters.find('g') > -1:
+                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','wb')
+                                outfile.write(codes[1])
+                                outfile.close
+                                outfile = open(file_name_sub(i, d) + rateinname + '.txt','wb')
+                                outfile.write(codes[0])
+                                outfile.close
                         else:
                             outfile = open(file_name_sub(i, d) + rateinname + '.txt','wb')
                             outfile.write(codes[0])
                 outfile.close
                 print_log(i + " complete.")
-            elif response.status == 301:
-                # Inserts the redirected build name into the pagelist array so it is done next
-                headers = str(response.getheaders())
-                newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
-                newpagename = newpagestr[0].replace('gwpvx.gamepedia.com/','').replace("')",'').replace('_',' ')
-                newpagepos = pagelist.index(i) + 1
-                pagelist.insert(newpagepos, newpagename)
-                print_log('301 redirection...')
-            else:
-                http_failure(i, response.status, response.reason, response.getheaders())
-                print_log(i + " failed.")
-    print_log("Script complete.", 'yes')
-    if parameters.find('w') > -1:
-        textlog.close
+        elif response.status == 301:
+            # Follow the redirect
+            headers = str(response.getheaders())
+            newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
+            newpagename = newpagestr[0].replace('gwpvx.gamepedia.com/','').replace("')",'').replace('_',' ')
+            print_log('301 redirection...')
+            get_build_and_write(newpagename)
+        else:
+            http_failure(i, response.status, response.reason, response.getheaders())
+            print_log(i + " failed.")
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
@@ -200,6 +216,20 @@ def category_page_list(page, newlist):
             newlist += [current]
     return newlist
 
+def directory_tree(dirlevels):
+    while len(dirlevels) < 4:
+        dirlevels += [['']]
+    directories = []
+    for a in dirlevels[0]:
+     for b in dirlevels[1]:
+      for c in dirlevels[2]:
+       for d in dirlevels[3]:
+        directories += ['./PvX Build Packs/' + a + '/' + b + '/' + c + '/' + d]
+    for folder in directories:
+        if not os.path.isdir(folder):
+            os.makedirs(folder)
+    return directories
+
 def id_gametypes(page):
     # Finds the build-types div, and then extracts the tags. Two checks for: build-types div isn't found or if it has no tags in it.
     builddiv = re.search('<div class="build-types">.*?</div>', page, re.DOTALL)
@@ -213,6 +243,8 @@ def id_gametypes(page):
     for t in rawtypes:
         if t.find('team') > -1:
             gametypes += [re.sub('<br />', ' ', t)]
+        elif len(t) > 12:
+            gametypes += [(re.sub('Pv[EP]<br />', '', t)).title()]
         else:
             gametypes += [re.sub('Pv[EP]<br />', '', t)]
     return gametypes
@@ -269,7 +301,7 @@ def http_failure(attempt, response, reason, headers):
             print_log('Ok, exiting...', 'yes')
             raise SystemExit()
         else:
-            print_log('Please enter \'y\' or \'n\'.', 'yes')
+            print_log("Please enter 'y' or 'n'.", 'yes')
 
 if __name__ == "__main__":
     main()
