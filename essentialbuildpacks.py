@@ -22,9 +22,6 @@ def main():
     # Unfortunately PvXwiki lacks a unified working builds category. Affected by Flux is needed to grab the auto-archiving builds (no sense running this every month if nothing's actually changed).
     CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
     
-    if not os.path.isdir('./PvX Build Packs'):
-        os.mkdir('./PvX Build Packs')
-    
     # Make the list of build pages to visit
     pagelist = []
     for cat in CATEGORIES:
@@ -72,13 +69,11 @@ def main():
                     typdir = './PvX Build Packs/' + typ.title()
                 else:
                     typdir = './PvX Build Packs/' + typ
-                if not os.path.isdir(typdir):
-                    os.mkdir(typdir)
                 for rat in ratings:
                     directories += [typdir + '/' + rat]
             for d in directories:
                 if not os.path.isdir(d):
-                    os.mkdir(d)
+                    os.makedirs(d)
             # Check to see if the build is a team build
             if i.find('Team') >= 1 and len(codes) > 1:
                 num = 0

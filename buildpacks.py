@@ -11,7 +11,7 @@ parameters = raw_input('Parameters (h for help): ')
 while parameters.find('h') > -1:
     print 'a: save Any/X builds.'
     print 'c: list and choose from preset categories.'
-    print 'f: build "Affected by Flux" packs.'
+    print 'f: add flux sort.'
     print 'g: remove gametype sort.'
     print 'l: limit to single output directory.'
     print 'p: add profession sort.'
@@ -36,12 +36,9 @@ def main():
     else:
         http_failure('Start', r1.status, r1.response, r1.getheaders())
 
-    #Check for category selection mode. 'f' > 'q' > 'c'. If none of these, just grab the tested builds.
+    #Check for category selection mode. 'q' > 'c'. If none of these, just grab the tested builds.
     CATEGORIES = []
-    if parameters.find('f') > -1:
-        #Note that 'f' also changes the pack layout later on, so this isn't purely redundant with 'q'.
-        CATEGORIES = ['Affected_by_Flux']
-    elif parameters.find('q') > -1:
+    if parameters.find('q') > -1:
         manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
         while manualcatentry != '':
             CATEGORIES += [manualcatentry.replace(' ','_')]
@@ -52,7 +49,7 @@ def main():
         if 'y' in print_prompt('Do you want any PvE builds? (y/n)'):
             CATEGORIES += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds'])
         if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n)'):
-            CATEGORIES += category_selection(['Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds'])
+            CATEGORIES += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds'])
         if len(CATEGORIES) < 1:
             print_log("No categories selected.", "yes")
     else:
@@ -96,7 +93,7 @@ def main():
         textlog.close
 
 def get_build_and_write(i, limitdir):
-    # Check to see if the build has an empty primary profession (would generate an invalid template code)
+    # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
     if (i.find('Any/') > -1) and (parameters.find('a') == -1):
         print_log(i + " skipped (empty primary profession).")
     else:
@@ -106,36 +103,17 @@ def get_build_and_write(i, limitdir):
         page = response.read()
         conn.close()
         if response.status == 200:
-            # Grab the build info
-            gametypes = id_gametypes(page)
-            ratings = id_ratings(page)
+            # Grab the codes first
             codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
             # If no template codes found on the build page, skip the build
             if len(codes) == 0:
                 print_log('No template code found for ' + i + '. Skipped.')
             else:
-                # Flux sort mode
-                if parameters.find('f') > -1:
-                    fluxcats = re.findall('Category:(Affected_by_\w*?)_Flux', page)
-                    fluxes = []
-                    for rf in fluxcats:
-                        fluxes += [rf.replace('_',' ')]
-                    if len(fluxes) = 0:
-                        fluxes = ['Not Affected by Flux']
-                else:
-                    fluxes = ['']
-                # Profession sort mode
-                if parameters.find('p') > -1:
-                    prefix = (re.search(r'Build:(\w+)\s*/*-*', i)).group(1)
-                    profdict = {'A':'Assassin','Any':'Any','D':'Dervish','E':'Elementalist','Me':'Mesmer','Mo':'Monk','N':'Necromancer','P':'Paragon','R':'Ranger','Rt':'Ritualist','Team':'Team', 'W':'Warrior'}
-                    profession = [profdict[prefix]]
-                else:
-                    profession = ['']
-                # Check for no ratings mode
-                if parameters.find('r') == -1:
-                    rateinname = ''
-                else:
-                    rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
+                #Grab all the other build info
+                fluxes = id_fluxes(page)
+                profession = id_profession(i)
+                gametypes = id_gametypes(page)
+                ratings = id_ratings(page)
                 # Create the directories
                 if parameters.find('l') == -1:
                     dirlevels = []
@@ -147,6 +125,9 @@ def get_build_and_write(i, limitdir):
                         dirlevels += [gametypes]
                     if parameters.find('r') == -1:
                         dirlevels += [ratings]
+                        rateinname = ''
+                    else:
+                        rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
                     directories = directory_tree(dirlevels)
                 else:
                     directories = ['./' + limitdir]
@@ -221,7 +202,6 @@ def category_page_list(page, newlist):
 def directory_tree(dirlevels):
     while len(dirlevels) < 4:
         dirlevels += [['']]
-    raw_input(str(dirlevels))
     directories = []
     for a in dirlevels[0]:
      for b in dirlevels[1]:
@@ -232,6 +212,21 @@ def directory_tree(dirlevels):
         if not os.path.isdir(folder):
             os.makedirs(folder)
     return directories
+
+def id_fluxes(page):
+    fluxcats = re.findall('Category:(Affected_by_\w*?)_Flux', page)
+    fluxes = []
+    for f in fluxcats:
+        fluxes += [f.replace('_',' ')]
+    if len(fluxes) == 0:
+        fluxes = ['Unaffected by Flux']
+    return fluxes
+
+def id_profession(name):
+    prefix = (re.search(r'Build:(\w+)\s*/*-*', name)).group(1)
+    profdict = {'A':'Assassin','Any':'Any','D':'Dervish','E':'Elementalist','Me':'Mesmer','Mo':'Monk','N':'Necromancer','P':'Paragon','R':'Ranger','Rt':'Ritualist','Team':'Team', 'W':'Warrior'}
+    profession = [profdict[prefix]]
+    return profession
 
 def id_gametypes(page):
     # Finds the build-types div, and then extracts the tags. Two checks for: build-types div isn't found or if it has no tags in it.
