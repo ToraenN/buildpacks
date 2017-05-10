@@ -1,25 +1,25 @@
 # License for this script is the CC BY-NC-SA 2.5: https://creativecommons.org/licenses/by-nc-sa/2.5/
 # The original author of this script is Danny, of PvXwiki: http://gwpvx.gamepedia.com/UserProfile:Danny11384
-import httplib
+import http.client
 import re
 import os
 import os.path
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
-conn = httplib.HTTPConnection('gwpvx.gamepedia.com')
-parameters = raw_input('Parameters (h for help): ')
+conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
+parameters = input('Parameters (h for help): ')
 while parameters.find('h') > -1:
-    print 'a: save Any/X builds.'
-    print 'c: list and choose from preset categories.'
-    print 'f: add flux sort.'
-    print 'g: remove gametype sort.'
-    print 'l: limit to single output directory.'
-    print 'p: add profession sort.'
-    print 'q: manual category entry. Enter as many categories as you want.'
-    print 'r: removes rating sort.'
-    print 's: silent mode.'
-    print 'w: write log.'
-    parameters = raw_input('Parameters: ')
+    print('a: save Any/X builds.')
+    print('c: list and choose from preset categories.')
+    print('f: add flux sort.')
+    print('g: remove gametype sort.')
+    print('l: limit to single output directory.')
+    print('p: add profession sort.')
+    print('q: manual category entry. Enter as many categories as you want.')
+    print('r: removes rating sort.')
+    print('s: silent mode.')
+    print('w: write log.')
+    parameters = input('Parameters: ')
 if parameters.find('w') > -1:
     textlog = open('./buildpackslog.txt', 'ab')
 
@@ -97,7 +97,7 @@ def get_build_and_write(i, limitdir):
     if (i.find('Any/') > -1) and (parameters.find('a') == -1):
         print_log(i + " skipped (empty primary profession).")
     else:
-        print_log("Attempting " + (urllib.unquote(i)).replace('_',' ') + "...")
+        print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
         conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
         response = conn.getresponse()
         page = response.read()
@@ -180,7 +180,7 @@ def get_build_and_write(i, limitdir):
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
-    filename = directory + '/' + (urllib.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+    filename = directory + '/' + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def category_selection(ALLCATS):
@@ -268,14 +268,14 @@ def id_ratings(page):
     return ratings
 
 def print_prompt(string):
-    answer = raw_input(string)
+    answer = input(string)
     if parameters.find('w') > -1:
         textlog.write(string + answer + '\r\n')
     return answer
 
 def print_log(string, alwaysdisplay = 'no'):
     if (parameters.find('s') == -1) or (alwaysdisplay == 'yes'):
-        print string
+        print(string)
     if parameters.find('w') > -1:
         textlog.write(str(string) + '\r\n')
 
