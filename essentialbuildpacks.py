@@ -115,11 +115,11 @@ def main():
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
-    filename = directory + '/' + build.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+    filename = directory + '/' + build.replace('Build:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def category_page_list(page, newlist):
-    pagelist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
+    pagelist = re.findall('"(Build:.*?)"\}', page)
     for i in pagelist:
         current = i.replace('\\','')
         if not current in newlist:
