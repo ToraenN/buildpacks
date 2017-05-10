@@ -214,10 +214,7 @@ def directory_tree(dirlevels):
     return directories
 
 def id_fluxes(page):
-    fluxcats = re.findall('Category:(Affected_by_\w*?)_Flux', page)
-    fluxes = []
-    for f in fluxcats:
-        fluxes += [f.replace('_',' ')]
+    fluxes = re.findall('>(Affected by [^<>]*?) Flux<', page)
     if len(fluxes) == 0:
         fluxes = ['Unaffected by Flux']
     return fluxes
