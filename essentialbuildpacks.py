@@ -1,12 +1,12 @@
 # License for this script is the CC BY-NC-SA 2.5: https://creativecommons.org/licenses/by-nc-sa/2.5/
 # The original author of this script is Danny, of PvXwiki: http://gwpvx.gamepedia.com/UserProfile:Danny11384
-import httplib
+import http.client
 import re
 import os
 import os.path
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
-conn = httplib.HTTPConnection('gwpvx.gamepedia.com')
+conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
 
 def main():
     global conn
@@ -14,9 +14,9 @@ def main():
     r1 = conn.getresponse()
     conn.close()
     if r1.status == 200:
-        print "Holy shit! Curse is actually working. Now let's start getting that build data."
+        print("Holy shit! Curse is actually working. Now let's start getting that build data.")
     else:
-        print "Curse's servers are (probably) down. Try again later."
+        print("Curse's servers are (probably) down. Try again later.")
         raise SystemExit()
     
     # Unfortunately PvXwiki lacks a unified working builds category. Affected by Flux is needed to grab the auto-archiving builds (no sense running this every month if nothing's actually changed).
@@ -26,7 +26,7 @@ def main():
     pagelist = []
     for cat in CATEGORIES:
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
-        print "Assembling build list for " + catname.replace('_',' ') + "..."
+        print("Assembling build list for " + catname.replace('_',' ') + "...")
         conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         response = conn.getresponse()
         catpage = response.read()
@@ -36,19 +36,19 @@ def main():
             CATEGORIES += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
             buildlist = category_page_list(catpage, pagelist)
-            print "Builds from " + catname.replace('_',' ') + " added to list!"
+            print("Builds from " + catname.replace('_',' ') + " added to list!")
         else:
-            print "Build listing for " + catname.replace('_',' ') + " failed."
-    print str(len(pagelist)) + ' builds found!'
+            print("Build listing for " + catname.replace('_',' ') + " failed.")
+    print(str(len(pagelist)) + ' builds found!')
     
     # And finally start working on the builds
     for i in pagelist:
         # Check to see if the build has an empty primary profession (would generate an invalid template code)
-        buildname = urllib.unquote(i)
+        buildname = urllib.parse.unquote(i)
         if i.find('Any/') > -1:
-            print buildname + " skipped (empty primary profession)."
+            print(buildname + " skipped (empty primary profession).")
             continue
-        print "Attempting " + buildname + "..."
+        print("Attempting " + buildname + "...")
         conn.request('GET', '/' + i.replace(' ','_').replace("'",'%27').replace('"','%22'))
         response = conn.getresponse()
         page = response.read()
@@ -60,7 +60,7 @@ def main():
             codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
             # If no template codes found on the build page, skip the build
             if len(codes) == 0:
-                print 'No template code found for ' + buildname + '. Skipped.'
+                print('No template code found for ' + buildname + '. Skipped.')
                 continue
             # Establish directories
             directories = []
@@ -95,7 +95,7 @@ def main():
                     else:
                         outfile = open(file_name_sub(buildname, d) + '.txt','wb')
                         outfile.write(codes[0])
-            print buildname + " complete."
+            print(buildname + " complete.")
         elif response.status == 301:
             # Inserts the redirected build name into the pagelist array so it is done next
             headers = str(response.getheaders())
@@ -103,10 +103,10 @@ def main():
             newpagename = newpagestr[0].replace('_',' ')
             newpagepos = pagelist.index(i) + 1
             pagelist.insert(newpagepos, newpagename)
-            print '301 redirection...'
+            print('301 redirection...')
         else:
-            print i + " failed."
-    print "Script complete."
+            print(i + " failed.")
+    print("Script complete.")
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
