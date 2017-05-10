@@ -21,7 +21,7 @@ while parameters.find('h') > -1:
     print('w: write log.')
     parameters = input('Parameters: ')
 if parameters.find('w') > -1:
-    textlog = open('./buildpackslog.txt', 'ab')
+    textlog = open('./buildpackslog.txt', 'a')
 
 def main():
     global conn
@@ -63,7 +63,7 @@ def main():
         print_log("Assembling build list for " + catname.replace('_',' ') + "...")
         conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         response = conn.getresponse()
-        page = response.read()
+        page = str(response.read())
         conn.close()
         # Check if a continuation was offered due to the category having more members than the display limit
         continuestr = re.search(r'(page\|.*\|.*)",', page)
@@ -100,7 +100,7 @@ def get_build_and_write(i, limitdir):
         print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
         conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
         response = conn.getresponse()
-        page = response.read()
+        page = str(response.read())
         conn.close()
         if response.status == 200:
             # Grab the codes first
@@ -146,24 +146,24 @@ def get_build_and_write(i, limitdir):
                             teamdir = file_name_sub(i, d) + rateinname
                             if not os.path.isdir(teamdir):
                                 os.mkdir(teamdir)
-                            outfile = open(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt','wb')
+                            outfile = open(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt','w')
                             outfile.write(j)
                 else:
                     for d in directories:
                         # Check for a non-team build with both player and hero versions, and sort them appropriately
                         if (len(codes) > 1) and ('Hero' in gametypes) and ('General' in gametypes):
                             if d.find('Hero') > -1:
-                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','wb')
+                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','w')
                                 outfile.write(codes[1])
                             elif parameters.find('g') > -1:
-                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','wb')
+                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','w')
                                 outfile.write(codes[1])
                                 outfile.close
-                                outfile = open(file_name_sub(i, d) + rateinname + '.txt','wb')
+                                outfile = open(file_name_sub(i, d) + rateinname + '.txt','w')
                                 outfile.write(codes[0])
                                 outfile.close
                         else:
-                            outfile = open(file_name_sub(i, d) + rateinname + '.txt','wb')
+                            outfile = open(file_name_sub(i, d) + rateinname + '.txt','w')
                             outfile.write(codes[0])
                 outfile.close
                 print_log(i + " complete.")
