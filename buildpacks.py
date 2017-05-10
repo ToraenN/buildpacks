@@ -135,7 +135,7 @@ def get_build_and_write(i, limitdir):
                         os.mkdir(directories[0])
                 # If we're making a log file, inlcude the build info
                 if parameters.find('w') > -1:
-                    textlog = open('./buildpackslog.txt', a)
+                    textlog = open('./buildpackslog.txt', 'a')
                     textlog.write('Fluxes found:' + str(fluxes) + '\r\nGametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
                     textlog.close
                 # Check to see if the build is a team build
@@ -150,6 +150,7 @@ def get_build_and_write(i, limitdir):
                                 os.mkdir(teamdir)
                             outfile = open(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt','w')
                             outfile.write(j)
+                            outfile.close
                 else:
                     for d in directories:
                         # Check for a non-team build with both player and hero versions, and sort them appropriately
@@ -167,7 +168,7 @@ def get_build_and_write(i, limitdir):
                         else:
                             outfile = open(file_name_sub(i, d) + rateinname + '.txt','w')
                             outfile.write(codes[0])
-                outfile.close
+                            outfile.close
                 print_log(i + " complete.")
         elif response.status == 301:
             # Follow the redirect
