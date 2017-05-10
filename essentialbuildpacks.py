@@ -29,7 +29,7 @@ def main():
         print("Assembling build list for " + catname.replace('_',' ') + "...")
         conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         response = conn.getresponse()
-        catpage = response.read()
+        catpage = str(response.read())
         conn.close()
         continuestr = re.search(r'(page\|.*\|.*)",', catpage)
         if continuestr:
@@ -51,7 +51,7 @@ def main():
         print("Attempting " + buildname + "...")
         conn.request('GET', '/' + i.replace(' ','_').replace("'",'%27').replace('"','%22'))
         response = conn.getresponse()
-        page = response.read()
+        page = str(response.read())
         conn.close()
         if response.status == 200:
             # Grab the build info
@@ -84,16 +84,16 @@ def main():
                         teamdir = file_name_sub(i, d)
                         if not os.path.isdir(teamdir):
                             os.mkdir(teamdir)
-                        outfile = open(file_name_sub(buildname, teamdir) + ' - ' + str(num) + '.txt','wb')
+                        outfile = open(file_name_sub(buildname, teamdir) + ' - ' + str(num) + '.txt','w')
                         outfile.write(j)
             else:
                 for d in directories:
                     # Check for a non-team build with both player and hero versions, and sort them appropriately
                     if len(codes) > 1 and ('hero' in gametypes) and ('general' in gametypes) and d.find('Hero') > -1:
-                        outfile = open(file_name_sub(buildname, d) + ' - Hero.txt','wb')
+                        outfile = open(file_name_sub(buildname, d) + ' - Hero.txt','w')
                         outfile.write(codes[1])
                     else:
-                        outfile = open(file_name_sub(buildname, d) + '.txt','wb')
+                        outfile = open(file_name_sub(buildname, d) + '.txt','w')
                         outfile.write(codes[0])
             print(buildname + " complete.")
         elif response.status == 301:
