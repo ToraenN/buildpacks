@@ -116,10 +116,12 @@ def get_build_and_write(i, limitdir):
             else:
                 # Flux sort mode
                 if parameters.find('f') > -1:
-                    rfluxes = re.findall('Category:(Affected_by_\w*?)_Flux', page)
+                    fluxcats = re.findall('Category:(Affected_by_\w*?)_Flux', page)
                     fluxes = []
-                    for rf in rfluxes:
+                    for rf in fluxcats:
                         fluxes += [rf.replace('_',' ')]
+                    if len(fluxes) = 0:
+                        fluxes = ['Not Affected by Flux']
                 else:
                     fluxes = ['']
                 # Profession sort mode
@@ -152,7 +154,7 @@ def get_build_and_write(i, limitdir):
                         os.mkdir(directories[0])
                 # If we're making a log file, inlcude the build info
                 if parameters.find('w') > -1:
-                    textlog.write('Gametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
+                    textlog.write('Fluxes found:' + str(fluxes) + '\r\nGametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
                 # Check to see if the build is a team build
                 if i.find('Team') >= 1 and len(codes) > 1:
                     num = 0
@@ -219,6 +221,7 @@ def category_page_list(page, newlist):
 def directory_tree(dirlevels):
     while len(dirlevels) < 4:
         dirlevels += [['']]
+    raw_input(str(dirlevels))
     directories = []
     for a in dirlevels[0]:
      for b in dirlevels[1]:
