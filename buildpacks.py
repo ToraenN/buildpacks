@@ -20,14 +20,12 @@ while parameters.find('h') > -1:
     print('s: silent mode.')
     print('w: write log.')
     parameters = input('Parameters: ')
-if parameters.find('w') > -1:
-    textlog = open('./buildpackslog.txt', 'a')
-    textlog.write('Parameters: ' + parameters + '\r\n')
-    textlog.close
 
 def main():
     global conn
     global parameters
+    if parameters.find('w') > -1:
+        log_write('Parameters: ' + parameters + '\r\n')
     conn.request('GET', '/PvX_wiki')
     r1 = conn.getresponse()
     conn.close()
@@ -89,8 +87,6 @@ def main():
     for i in pagelist:
         get_build_and_write(i, limitdir)
     print_log("Script complete.", 'yes')
-    if parameters.find('w') > -1:
-        textlog.close
 
 def get_build_and_write(i, limitdir):
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
@@ -135,9 +131,7 @@ def get_build_and_write(i, limitdir):
                         os.mkdir(directories[0])
                 # If we're making a log file, inlcude the build info
                 if parameters.find('w') > -1:
-                    textlog = open('./buildpackslog.txt', 'a')
-                    textlog.write('Fluxes found:' + str(fluxes) + '\r\nGametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
-                    textlog.close
+                    log_write('Fluxes found:' + str(fluxes) + '\r\nGametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
                 # Check to see if the build is a team build
                 if i.find('Team') >= 1 and len(codes) > 1:
                     num = 0
@@ -273,23 +267,24 @@ def id_ratings(page):
 def print_prompt(string):
     answer = input(string)
     if parameters.find('w') > -1:
-        textlog = open('./buildpackslog.txt', 'a')
-        textlog.write(string + answer + '\r\n')
-        textlog.close
+        log_write(string + answer + '\r\n')
     return answer
 
 def print_log(string, alwaysdisplay = 'no'):
     if (parameters.find('s') == -1) or (alwaysdisplay == 'yes'):
         print(string)
     if parameters.find('w') > -1:
-        textlog = open('./buildpackslog.txt', 'a')
-        textlog.write(str(string) + '\r\n')
-        textlog.close
+        log_write(str(string) + '\r\n')
+
+def log_write(string):
+    textlog = open('./buildpackslog.txt', 'a')
+    textlog.write(string)
+    textlog.close
 
 def http_failure(attempt, response, reason, headers):
     print_log('HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason), 'yes')
     if parameters.find('w') > -1:
-        textlog.write('----\r\n' + str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n----\r\n')
+        log_write('----\r\n' + str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n----\r\n')
     if attempt == 'Start':
         print_log("Curse's servers are (probably) down. Try again later.", 'yes')
         raise SystemExit()
