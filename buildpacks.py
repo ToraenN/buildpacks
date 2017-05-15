@@ -1,33 +1,31 @@
 # License for this script is the CC BY-NC-SA 2.5: https://creativecommons.org/licenses/by-nc-sa/2.5/
 # The original author of this script is Danny, of PvXwiki: http://gwpvx.gamepedia.com/UserProfile:Danny11384
-import httplib
+import http.client
 import re
 import os
 import os.path
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
-conn = httplib.HTTPConnection('gwpvx.gamepedia.com')
-parameters = raw_input('Parameters (h for help): ')
+conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
+parameters = input('Parameters (h for help): ')
 while parameters.find('h') > -1:
-    print 'a: save Any/X builds.'
-    print 'c: list and choose from preset categories.'
-    print 'f: add flux sort.'
-    print 'g: remove gametype sort.'
-    print 'l: limit to single output directory.'
-    print 'p: add profession sort.'
-    print 'q: manual category entry. Enter as many categories as you want.'
-    print 'r: removes rating sort.'
-    print 's: silent mode.'
-    print 'w: write log.'
-    parameters = raw_input('Parameters: ')
-if parameters.find('w') > -1:
-    textlog = open('./buildpackslog.txt', 'ab')
+    print('a: save Any/X builds.')
+    print('c: list and choose from preset categories.')
+    print('f: add flux sort.')
+    print('g: remove gametype sort.')
+    print('l: limit to single output directory.')
+    print('p: add profession sort.')
+    print('q: manual category entry. Enter as many categories as you want.')
+    print('r: removes rating sort.')
+    print('s: silent mode.')
+    print('w: write log.')
+    parameters = input('Parameters: ')
 
 def main():
     global conn
     global parameters
     if parameters.find('w') > -1:
-        global textlog
+        log_write('Parameters: ' + parameters + '\r\n')
     conn.request('GET', '/PvX_wiki')
     r1 = conn.getresponse()
     conn.close()
@@ -63,7 +61,7 @@ def main():
         print_log("Assembling build list for " + catname.replace('_',' ') + "...")
         conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         response = conn.getresponse()
-        page = response.read()
+        page = str(response.read())
         conn.close()
         # Check if a continuation was offered due to the category having more members than the display limit
         continuestr = re.search(r'(page\|.*\|.*)",', page)
@@ -89,18 +87,16 @@ def main():
     for i in pagelist:
         get_build_and_write(i, limitdir)
     print_log("Script complete.", 'yes')
-    if parameters.find('w') > -1:
-        textlog.close
 
 def get_build_and_write(i, limitdir):
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
     if (i.find('Any/') > -1) and (parameters.find('a') == -1):
         print_log(i + " skipped (empty primary profession).")
     else:
-        print_log("Attempting " + (urllib.unquote(i)).replace('_',' ') + "...")
+        print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
         conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
         response = conn.getresponse()
-        page = response.read()
+        page = str(response.read())
         conn.close()
         if response.status == 200:
             # Grab the codes first
@@ -135,7 +131,7 @@ def get_build_and_write(i, limitdir):
                         os.mkdir(directories[0])
                 # If we're making a log file, inlcude the build info
                 if parameters.find('w') > -1:
-                    textlog.write('Fluxes found:' + str(fluxes) + '\r\nGametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
+                    log_write('Fluxes found:' + str(fluxes) + '\r\nGametypes found:' + str(gametypes) + '\r\nRatings found:' + str(ratings) + '\r\nCodes found:' + str(codes) + '\r\nDirectories used:' + str(directories) + '\r\n')
                 # Check to see if the build is a team build
                 if i.find('Team') >= 1 and len(codes) > 1:
                     num = 0
@@ -146,26 +142,27 @@ def get_build_and_write(i, limitdir):
                             teamdir = file_name_sub(i, d) + rateinname
                             if not os.path.isdir(teamdir):
                                 os.mkdir(teamdir)
-                            outfile = open(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt','wb')
+                            outfile = open(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt','w')
                             outfile.write(j)
+                            outfile.close
                 else:
                     for d in directories:
                         # Check for a non-team build with both player and hero versions, and sort them appropriately
                         if (len(codes) > 1) and ('Hero' in gametypes) and ('General' in gametypes):
                             if d.find('Hero') > -1:
-                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','wb')
+                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','w')
                                 outfile.write(codes[1])
                             elif parameters.find('g') > -1:
-                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','wb')
+                                outfile = open(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt','w')
                                 outfile.write(codes[1])
                                 outfile.close
-                                outfile = open(file_name_sub(i, d) + rateinname + '.txt','wb')
+                                outfile = open(file_name_sub(i, d) + rateinname + '.txt','w')
                                 outfile.write(codes[0])
                                 outfile.close
                         else:
-                            outfile = open(file_name_sub(i, d) + rateinname + '.txt','wb')
+                            outfile = open(file_name_sub(i, d) + rateinname + '.txt','w')
                             outfile.write(codes[0])
-                outfile.close
+                            outfile.close
                 print_log(i + " complete.")
         elif response.status == 301:
             # Follow the redirect
@@ -180,7 +177,7 @@ def get_build_and_write(i, limitdir):
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
-    filename = directory + '/' + (urllib.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+    filename = directory + '/' + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def category_selection(ALLCATS):
@@ -268,21 +265,26 @@ def id_ratings(page):
     return ratings
 
 def print_prompt(string):
-    answer = raw_input(string)
+    answer = input(string)
     if parameters.find('w') > -1:
-        textlog.write(string + answer + '\r\n')
+        log_write(string + answer + '\r\n')
     return answer
 
 def print_log(string, alwaysdisplay = 'no'):
     if (parameters.find('s') == -1) or (alwaysdisplay == 'yes'):
-        print string
+        print(string)
     if parameters.find('w') > -1:
-        textlog.write(str(string) + '\r\n')
+        log_write(str(string) + '\r\n')
+
+def log_write(string):
+    textlog = open('./buildpackslog.txt', 'a')
+    textlog.write(string)
+    textlog.close
 
 def http_failure(attempt, response, reason, headers):
     print_log('HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason), 'yes')
     if parameters.find('w') > -1:
-        textlog.write('----\r\n' + str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n----\r\n')
+        log_write('----\r\n' + str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n----\r\n')
     if attempt == 'Start':
         print_log("Curse's servers are (probably) down. Try again later.", 'yes')
         raise SystemExit()
