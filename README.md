@@ -37,7 +37,7 @@ s : blocks most of the progress messages from standard output. Errors are still 
 
 w : writes all progress messages, HTTP error messages and build information + directories to a text file.
 
-z : Creates zip archives of all the top-level directories (depending on the sorting options selected).
+z : Creates zip archives instead of saving individual text files.
 
 The sorts are ordered: Flux/Profession/Gametype/Rating
 
