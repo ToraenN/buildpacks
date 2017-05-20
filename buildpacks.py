@@ -7,7 +7,6 @@ import os.path
 import urllib.request, urllib.parse, urllib.error
 import zipfile
 
-
 conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
 parameters = input('Parameters (h for help): ')
 while parameters.find('h') > -1:
@@ -21,7 +20,7 @@ while parameters.find('h') > -1:
     print('r: removes rating sort.')
     print('s: silent mode.')
     print('w: write log.')
-    print('z: write zip files.')
+    print('z: save as zip files.')
     parameters = input('Parameters: ')
 
 def main():
@@ -178,6 +177,16 @@ def write_build(filename, code):
             while archivename.find('//') > -1:
                 archivename = archivename.replace('//','/')
             ZipPack.writestr(archivename, code)
+        if re.search('cfglpq', parameters) == True: #If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs.
+            return
+        with zipfile.ZipFile('./Zipped Build Packs/All Build Packs.zip', 'a') as AllPack:
+            AllPack.writestr(archivename, code)
+        if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team']:
+            with zipfile.ZipFile('./Zipped Build Packs/PvP Build Packs.zip', 'a') as PvPPack:
+                PvPPack.writestr(archivename, code)
+        if TopDir in ['General','Hero','Farming','Running','SC','PvE team']:
+            with zipfile.ZipFile('./Zipped Build Packs/PvE Build Packs.zip', 'a') as PvEPack:
+                PvEPack.writestr(archivename, code)
     else:
         with open(filename, 'w') as outfile:
             outfile.write(code)
