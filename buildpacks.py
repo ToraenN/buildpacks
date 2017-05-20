@@ -169,14 +169,18 @@ def get_build(i, limitdir):
         print_log(i + " failed.")
 
 def write_build(filename, code):
-    with open(filename, 'w') as outfile:
-        outfile.write(code)
     if parameters.find('z') > -1:
         if not os.path.isdir('./Zipped Build Packs'):
             os.makedirs('./Zipped Build Packs')
         TopDir = (re.search(r'PvX Build Packs/([\w\s]*?)/', filename)).group(1)
         with zipfile.ZipFile('./Zipped Build Packs/' + TopDir + '.zip', 'a') as ZipPack:
-            ZipPack.write(filename, filename.replace('./PvX Build Packs/',''))
+            archivename = filename.replace('./PvX Build Packs/','')
+            while archivename.find('//') > -1:
+                archivename = archivename.replace('//','/')
+            ZipPack.writestr(archivename, code)
+    else:
+        with open(filename, 'w') as outfile:
+            outfile.write(code)
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
@@ -208,9 +212,10 @@ def directory_tree(dirlevels):
       for c in dirlevels[2]:
        for d in dirlevels[3]:
         directories += ['./PvX Build Packs/' + a + '/' + b + '/' + c + '/' + d]
-    for folder in directories:
-        if not os.path.isdir(folder):
-            os.makedirs(folder)
+    if parameters.find('z') == -1:
+        for folder in directories:
+            if not os.path.isdir(folder):
+                os.makedirs(folder)
     return directories
 
 def id_fluxes(page):
