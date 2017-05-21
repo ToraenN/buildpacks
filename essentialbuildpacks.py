@@ -146,11 +146,13 @@ def id_gametypes(page):
     gametypes = []
     for t in rawtypes:
         if t.find('team') > -1:
-            gametypes += [re.sub('<br />', ' ', t)]
+            cleanedtype = re.sub('<br />', ' ', t)
         elif len(t) > 12:
-            gametypes += [(re.sub('Pv[EP]<br />', '', t)).title()]
+            cleanedtype = (re.sub('Pv[EP]<br />', '', t)).title()
         else:
-            gametypes += [re.sub('Pv[EP]<br />', '', t)]
+            cleanedtype = re.sub('Pv[EP]<br />', '', t)
+        if not cleanedtype in gametypes: # Apparently I cannot trust that everyone will avoid putting in duplicate tags
+            gametypes += [cleanedtype]
     return gametypes
 
 def id_ratings(page): 
