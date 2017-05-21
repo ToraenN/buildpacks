@@ -37,11 +37,11 @@ s : blocks most of the progress messages from standard output. Errors are still 
 
 w : writes all progress messages, HTTP error messages and build information + directories to a text file.
 
-z : Creates zip archives instead of saving individual text files.
+z : Creates zip archives instead of saving individual text files. Will create the three consolidated zip files if no sort or category parameters are entered.
 
 The sorts are ordered: Flux/Profession/Gametype/Rating
 
-The essential version of the script does not ask for any parameters and just collects the tested builds.
+The essential version of the script does not ask for any parameters and just collects the tested builds. It also only saves zips, not the separate text files.
 
 # Notes
 The script only recognizes builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
