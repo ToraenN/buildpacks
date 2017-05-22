@@ -141,7 +141,7 @@ def get_build(i, limitdir):
                 for d in directories:
                     #Adds the team folder
                     teamdir = file_name_sub(i, d) + rateinname
-                    if not os.path.isdir(teamdir):
+                    if (parameters.find('z') == -1) and not os.path.isdir(teamdir):
                         os.mkdir(teamdir)
                     write_build(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt', j)
         else:
