@@ -72,17 +72,19 @@ def get_build(i):
         # Create the directories
         directories = []
         for g in gametypes:
-         for r in ratings:
-          directories += ['./PvX Build Packs/' + g + '/' + r]
+            for r in ratings:
+                if i.find('Team') >= 1 and len(codes) > 1:
+                    teamdir = file_name_sub(i,'') + '/'
+                else:
+                    teamdir = ''
+                directories += ['./PvX Build Packs/' + g + '/' + r + '/' + teamdir]
         # Check to see if the build is a team build
         if i.find('Team') >= 1 and len(codes) > 1:
             num = 0
             for j in codes:
                 num += 1
                 for d in directories:
-                    #Adds the team folder
-                    teamdir = file_name_sub(i, d)
-                    write_build(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt', j)
+                    write_build(file_name_sub(i, d) + ' - ' + str(num) + '.txt', j)
         else:
             for d in directories:
                 # Check for a non-team build with both player and hero versions, and sort them appropriately
@@ -107,23 +109,26 @@ def write_build(filename, code):
     if not os.path.isdir('./Zipped Build Packs'):
         os.makedirs('./Zipped Build Packs')
     TopDir = (re.search(r'PvX Build Packs/([\w\s]*?)/', filename)).group(1)
-    with zipfile.ZipFile('./Zipped Build Packs/' + TopDir + '.zip', 'a') as ZipPack:
-        archivename = filename.replace('./PvX Build Packs/','')
-        while archivename.find('//') > -1:
-            archivename = archivename.replace('//','/')
-        ZipPack.writestr(archivename, code)
-    with zipfile.ZipFile('./Zipped Build Packs/All Build Packs.zip', 'a') as AllPack:
-        AllPack.writestr(archivename, code)
+    archivename = filename.replace('./PvX Build Packs/','')
+    zip_file_write(TopDir, archivename, code)
+    zip_file_write('All Build Packs', archivename, code)
     if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team']:
-        with zipfile.ZipFile('./Zipped Build Packs/PvP Build Packs.zip', 'a') as PvPPack:
-            PvPPack.writestr(archivename, code)
+        zip_file_write('PvP Build Packs', archivename, code)
     if TopDir in ['General','Hero','Farming','Running','SC','PvE team']:
-        with zipfile.ZipFile('./Zipped Build Packs/PvE Build Packs.zip', 'a') as PvEPack:
-            PvEPack.writestr(archivename, code)
+        zip_file_write('PvE Build Packs', archivename, code)
+
+def zip_file_write(packname, archivename, code):
+    with zipfile.ZipFile('./Zipped Build Packs/' + packname + '.zip', 'a') as ZipPack:
+        try:
+            ZipPack.getinfo(archivename)
+        except KeyError:
+            ZipPack.writestr(archivename, code)
+        else:
+            print(archivename + " already present in " + packname + ".zip!")
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
-    filename = directory + '/' + (urllib.parse.unquote(build)).replace('Build:','').replace('/','_').replace('"','\'\'')
+    filename = directory + (urllib.parse.unquote(build)).replace('Build:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def category_page_list(page, newlist):

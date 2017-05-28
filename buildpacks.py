@@ -11,14 +11,15 @@ conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
 parameters = input('Parameters (h for help): ')
 while parameters.find('h') > -1:
     print('a: save Any/X builds.')
+    print('b: block consolidated packs explicitly.')
     print('c: list and choose from preset categories.')
     print('f: add flux sort.')
     print('g: remove gametype sort.')
-    print('l: limit to single output directory.')
     print('p: add profession sort.')
     print('q: manual category entry. Enter as many categories as you want.')
-    print('r: removes rating sort.')
+    print('r: adds rating sort. Ratings no longer in file names.')
     print('s: silent mode.')
+    print('t: save text files even when saving zip files.')
     print('w: write log.')
     print('z: save as zip files.')
     parameters = input('Parameters: ')
@@ -36,28 +37,27 @@ def main():
     else:
         http_failure('Start', r1.status, r1.response, r1.getheaders())
 
-    #Check for category selection mode. 'q' > 'c'. If none of these, just grab the tested builds.
-    CATEGORIES = []
+    #Check for category selection modes. If none of these, just grab the tested builds.
+    categories = []
     if parameters.find('q') > -1:
         manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
         while manualcatentry != '':
-            CATEGORIES += [manualcatentry.replace(' ','_')]
+            categories += [manualcatentry.replace(' ','_')]
             manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
-    elif parameters.find('c') > -1:
+    if parameters.find('c') > -1:
         if 'y' in print_prompt('Do you want any PvP builds? (y/n)'):
-            CATEGORIES += category_selection(['All_working_AB_builds', 'All_working_FA_builds', 'All_working_JQ_builds', 'All_working_RA_builds', 'All_working_GvG_builds', 'All_working_HA_builds', 'All_working_PvP_team_builds'])
+            categories += category_selection(['All_working_AB_builds', 'All_working_FA_builds', 'All_working_JQ_builds', 'All_working_RA_builds', 'All_working_GvG_builds', 'All_working_HA_builds', 'All_working_PvP_team_builds'])
         if 'y' in print_prompt('Do you want any PvE builds? (y/n)'):
-            CATEGORIES += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds'])
+            categories += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds'])
         if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n)'):
-            CATEGORIES += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds'])
-        if len(CATEGORIES) < 1:
-            print_log("No categories selected.", "yes")
-    else:
+            categories += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds','WELL'])
+    if len(categories) == 0:
         # Default to all currently vetted builds, including the auto-archiving Flux builds.
-        CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
+        print_log("Using default categories.", "yes")
+        categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
 
     pagelist = []
-    for cat in CATEGORIES:
+    for cat in categories:
         # This done so you don't have a massive page id displayed for category continuations.
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
         print_log("Assembling build list for " + catname.replace('_',' ') + "...")
@@ -68,7 +68,7 @@ def main():
         # Check if a continuation was offered due to the category having more members than the display limit
         continuestr = re.search(r'(page\|.*\|.*)",', page)
         if continuestr:
-            CATEGORIES += [catname + '&cmcontinue=' + continuestr.group(1)]
+            categories += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
             pagelist = category_page_list(page, pagelist)
             print_log("Builds from " + catname.replace('_',' ') + " added to list!")
@@ -77,22 +77,14 @@ def main():
             print_log("Build listing for " + catname.replace('_',' ') + " failed.")
     print_log(str(len(pagelist)) + ' builds found!', 'yes')
 
-    # Limit directory mode
-    if parameters.find('l') > -1:
-        limitdir = print_prompt('Limit output to directory: ')
-        while limitdir == '' or (len(re.findall('[/\\\\*?:"<>|.]', limitdir)) > 0):
-            limitdir = print_prompt('Invalid directory name. Please choose another name: ')
-    else:
-        limitdir = ''
-
     # Process the builds
     for i in pagelist:
-        redirect = get_build(i, limitdir)
+        redirect = get_build(i)
         if redirect == True:
             pagelist.insert(pagelist.index(i) + 1, redirect)
     print_log("Script complete.", 'yes')
 
-def get_build(i, limitdir):
+def get_build(i):
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
     if (i.find('Any/') > -1) and (parameters.find('a') == -1):
         print_log(i + " skipped (empty primary profession).")
@@ -122,13 +114,13 @@ def get_build(i, limitdir):
             dirlevels += [profession]
         if parameters.find('g') == -1:
             dirlevels += [gametypes]
-        if parameters.find('r') == -1:
+        if parameters.find('r') > -1:
             dirlevels += [ratings]
             rateinname = ''
         else:
             rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
-        if parameters.find('l') > -1:
-            dirlevels = [[limitdir]]
+        if i.find('Team') >= 1 and len(codes) > 1:
+            dirlevels += [[(file_name_sub(i,'') + rateinname)]]
         directories = directory_tree(dirlevels)
         # If we're making a log file, inlcude the build info
         if parameters.find('w') > -1:
@@ -139,11 +131,7 @@ def get_build(i, limitdir):
             for j in codes:
                 num += 1
                 for d in directories:
-                    #Adds the team folder
-                    teamdir = file_name_sub(i, d) + rateinname
-                    if (parameters.find('z') == -1) and not os.path.isdir(teamdir):
-                        os.mkdir(teamdir)
-                    write_build(file_name_sub(i, teamdir) + ' - ' + str(num) + '.txt', j)
+                    write_build(file_name_sub(i, d) + ' - ' + str(num) + '.txt', j)
         else:
             for d in directories:
                 # Check for a non-team build with both player and hero versions, and sort them appropriately
@@ -168,41 +156,48 @@ def get_build(i, limitdir):
         print_log(i + " failed.")
 
 def write_build(filename, code):
+    if parameters.find('t') > -1 or parameters.find('z') == -1:
+        with open(filename, 'w') as outfile:
+            outfile.write(code)
     if parameters.find('z') > -1:
         if not os.path.isdir('./Zipped Build Packs'):
             os.makedirs('./Zipped Build Packs')
-        TopDir = (re.search(r'PvX Build Packs/([\w\s]*?)/', filename)).group(1)
-        with zipfile.ZipFile('./Zipped Build Packs/' + TopDir + '.zip', 'a') as ZipPack:
-            archivename = filename.replace('./PvX Build Packs/','')
-            while archivename.find('//') > -1:
-                archivename = archivename.replace('//','/')
-            ZipPack.writestr(archivename, code)
-        if re.search('cfglpq', parameters) == True: #If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs.
+        try:
+            TopDir = (re.search(r'PvX Build Packs/([\w\s]*?)/', filename)).group(1)
+        except AttributeError:
+            TopDir = 'PvX Build Packs'
+        archivename = filename.replace('./PvX Build Packs/','')
+        zip_file_write(TopDir, archivename, code)
+        #If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs.
+        if re.search(r'[bcfgpq]', parameters):
             return
-        with zipfile.ZipFile('./Zipped Build Packs/All Build Packs.zip', 'a') as AllPack:
-            AllPack.writestr(archivename, code)
+        zip_file_write('All Build Packs', archivename, code)
         if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team']:
-            with zipfile.ZipFile('./Zipped Build Packs/PvP Build Packs.zip', 'a') as PvPPack:
-                PvPPack.writestr(archivename, code)
+            zip_file_write('PvP Build Packs', archivename, code)
         if TopDir in ['General','Hero','Farming','Running','SC','PvE team']:
-            with zipfile.ZipFile('./Zipped Build Packs/PvE Build Packs.zip', 'a') as PvEPack:
-                PvEPack.writestr(archivename, code)
-    else:
-        with open(filename, 'w') as outfile:
-            outfile.write(code)
+            zip_file_write('PvE Build Packs', archivename, code)
+
+def zip_file_write(packname, archivename, code):
+    with zipfile.ZipFile('./Zipped Build Packs/' + packname + '.zip', 'a') as ZipPack:
+        try:
+            ZipPack.getinfo(archivename)
+        except KeyError:
+            ZipPack.writestr(archivename, code)
+        else:
+            print_log(archivename + " already present in " + packname + ".zip!")
 
 def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
-    filename = directory + '/' + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+    filename = directory + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def category_selection(ALLCATS):
-    CATEGORIES = []
+    categories = []
     for a in ALLCATS:
         answer = print_prompt('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
         if answer == 'y':
-            CATEGORIES += [a]
-    return CATEGORIES
+            categories += [a]
+    return categories
 
 def category_page_list(page, newlist):
     pagelist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
@@ -213,15 +208,19 @@ def category_page_list(page, newlist):
     return newlist
 
 def directory_tree(dirlevels):
-    while len(dirlevels) < 4:
+    while len(dirlevels) < 5:
         dirlevels += [['']]
     directories = []
     for a in dirlevels[0]:
      for b in dirlevels[1]:
       for c in dirlevels[2]:
        for d in dirlevels[3]:
-        directories += ['./PvX Build Packs/' + a + '/' + b + '/' + c + '/' + d]
-    if parameters.find('z') == -1:
+        for e in dirlevels[4]:
+         addeddir = './PvX Build Packs/' + a + '/' + b + '/' + c + '/' + d + '/' + e + '/'
+         while addeddir.find('//') > -1:
+             addeddir = addeddir.replace('//','/')
+         directories += [addeddir]
+    if (parameters.find('t') > -1) or (parameters.find('z') == -1):
         for folder in directories:
             if not os.path.isdir(folder):
                 os.makedirs(folder)
