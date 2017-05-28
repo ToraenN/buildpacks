@@ -51,10 +51,9 @@ def main():
             categories += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds'])
         if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n)'):
             categories += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds','WELL'])
-        if len(categories) < 1:
-            print_log("No categories selected.", "yes")
     if len(categories) == 0:
         # Default to all currently vetted builds, including the auto-archiving Flux builds.
+        print_log("Using default categories.", "yes")
         categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
 
     pagelist = []
