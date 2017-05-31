@@ -10,7 +10,7 @@ import zipfile
 conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
 parameters = input('Parameters (h for help): ')
 while parameters.find('h') > -1:
-    print('a: save Any/X builds.')
+    print('a: don\'t save Any/X builds.')
     print('b: block consolidated packs explicitly.')
     print('c: list and choose from preset categories.')
     print('f: add flux sort.')
@@ -87,7 +87,7 @@ def main():
 
 def get_build(i):
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
-    if (i.find('Any/') > -1) and (parameters.find('a') == -1):
+    if (i.find('Any/') > -1) and (parameters.find('a') > -1):
         print_log(i + " skipped (empty primary profession).")
         return
     print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
