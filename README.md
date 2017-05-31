@@ -39,6 +39,8 @@ t : save text files even if saving zip files.
 
 w : writes all progress messages, HTTP error messages and build information + directories to a text file.
 
+y : forces the consolidated zip files to be made even if sort/category/'b' options are enabled.
+
 z : Creates zip archives instead of saving individual text files. Will create the three consolidated zip files if no sort or category parameters are entered.
 
 The sorts are ordered: Flux/Profession/Gametype/Rating
