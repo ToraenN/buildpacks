@@ -15,7 +15,7 @@ Parameters modify this basic program flow as follows.
 # Parameters
 If none are entered, the script will select the 'All working PvP builds', 'All working PvE builds' and 'Affected by Flux' categories (all of the currently vetted builds) and process them as stated in the Program Flow section. The parameters that can be entered are:
 
-a : to save builds with an empty primary profession because some build editor programs can read them.
+a : to not save builds with an empty primary profession (some build editor programs can read them but Guild Wars cannot).
 
 b : prevents the consolidated zip files from being made.
 
