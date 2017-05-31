@@ -21,6 +21,7 @@ while parameters.find('h') > -1:
     print('s: silent mode.')
     print('t: save text files even when saving zip files.')
     print('w: write log.')
+    print('y: build consolidated packs even with category/sort selects (overrides "b")')
     print('z: save as zip files.')
     parameters = input('Parameters: ')
 
@@ -80,7 +81,7 @@ def main():
     # Process the builds
     for i in pagelist:
         redirect = get_build(i)
-        if redirect == True:
+        if not redirect == None:
             pagelist.insert(pagelist.index(i) + 1, redirect)
     print_log("Script complete.", 'yes')
 
@@ -97,10 +98,23 @@ def get_build(i):
     if response.status == 200:
         # Grab the codes first
         codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
-        # If no template codes found on the build page, skip the build
+        # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
-            print_log('No template code found for ' + i + '. Skipped.')
-            return
+            print_log('No build template found on page for ' + i + '.')
+            skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
+            if not re.search('s', skip) == None:
+                return i
+            else:
+                return
+        #Some people don't remember to assign the secondary profession and this happens...
+        for c in codes:
+            if c == '':
+                print_log('Warning: Blank code found in ' + i + '! (code #: ' + code.index + ')')
+                skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
+                if not re.search('s', skip) == None:
+                    return i
+                else:
+                    return
         #Grab all the other build info
         fluxes = id_fluxes(page)
         profession = id_profession(i)
@@ -168,8 +182,8 @@ def write_build(filename, code):
             TopDir = 'PvX Build Packs'
         archivename = filename.replace('./PvX Build Packs/','')
         zip_file_write(TopDir, archivename, code)
-        #If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs.
-        if re.search(r'[bcfgpq]', parameters):
+        #If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs. Overridden by 'y'.
+        if re.search(r'[bcfgpq]', parameters) and not re.search('y', parameters):
             return
         zip_file_write('All Build Packs', archivename, code)
         if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team']:
