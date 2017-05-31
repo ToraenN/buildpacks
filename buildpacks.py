@@ -100,7 +100,7 @@ def get_build(i):
         codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
         # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
-            print_log('No build template found on page for ' + i + '.')
+            print_log('No build template found on page for ' + i + '.', 'yes')
             skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
             if not re.search('s', skip) == None:
                 return i
@@ -109,7 +109,7 @@ def get_build(i):
         #Some people don't remember to assign the secondary profession and this happens...
         for c in codes:
             if c == '':
-                print_log('Warning: Blank code found in ' + i + '! (code #: ' + code.index + ')')
+                print_log('Warning: Blank code found in ' + i + '! (code #: ' + code.index + ')', 'yes')
                 skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
                 if not re.search('s', skip) == None:
                     return i
@@ -138,7 +138,7 @@ def get_build(i):
         directories = directory_tree(dirlevels)
         # If we're making a log file, inlcude the build info
         if parameters.find('w') > -1:
-            log_write('Fluxes found: ' + str(fluxes) + ' - Profession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes) + '\r\nDirectories used: ' + str(directories) + '\r\n')
+            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes) + '\r\nDirectories used: ' + str(directories) + '\r\n')
         # Check to see if the build is a team build
         if i.find('Team') >= 1 and len(codes) > 1:
             num = 0
