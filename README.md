@@ -50,8 +50,6 @@ The essential version of the script does not ask for any parameters and just col
 # Notes
 The script only recognizes builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
 
-By default it will skip any builds that have an open primary profession (Guild Wars does not recognize template codes that lack a primary profession).
-
 Team builds are saved in their own subfolders and each template is named: Team - Build Name - #.txt. The script does not pull the builds' names or profession prefixes from the page to name the file with.
 
 Non-team builds that have separate player and hero template codes will appropriately be sorted to the 'general' (player build) and 'hero' (hero build) folders.
