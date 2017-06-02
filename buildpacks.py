@@ -13,11 +13,8 @@ while parameters.find('h') > -1:
     print('a: don\'t save Any/X builds.')
     print('b: block consolidated packs explicitly.')
     print('c: list and choose from preset categories.')
-    print('f: add flux sort.')
-    print('g: remove gametype sort.')
-    print('p: add profession sort.')
+    print('o: change folder layout.')
     print('q: manual category entry. Enter as many categories as you want.')
-    print('r: adds rating sort. Ratings no longer in file names.')
     print('s: silent mode.')
     print('t: save text files even when saving zip files.')
     print('w: write log.')
@@ -37,7 +34,13 @@ def main():
         print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
     else:
         http_failure('Start', r1.status, r1.response, r1.getheaders())
-
+    
+    if parameters.find('o') > -1:
+        dirorder = False
+        while dirorder == False:
+            dirorder = change_dir_order()
+    else:
+        dirorder = 'g'
     #Check for category selection modes. If none of these, just grab the tested builds.
     categories = []
     if parameters.find('q') > -1:
@@ -80,12 +83,12 @@ def main():
 
     # Process the builds
     for i in pagelist:
-        redirect = get_build(i)
+        redirect = get_build(i, dirorder)
         if not redirect == None:
             pagelist.insert(pagelist.index(i) + 1, redirect)
     print_log("Script complete.", 'yes')
 
-def get_build(i):
+def get_build(i, dirorder):
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
     if (i.find('Any/') > -1) and (parameters.find('a') > -1):
         print_log(i + " skipped (empty primary profession).")
@@ -122,14 +125,16 @@ def get_build(i):
         ratings = id_ratings(page)
         # Create the directories
         dirlevels = []
-        if parameters.find('f') > -1:
-            dirlevels += [fluxes]
-        if parameters.find('p') > -1:
-            dirlevels += [profession]
-        if parameters.find('g') == -1:
-            dirlevels += [gametypes]
-        if parameters.find('r') > -1:
-            dirlevels += [ratings]
+        for o in dirorder:
+            if o == 'f':
+                dirlevels += [fluxes]
+            elif o == 'p':
+                dirlevels += [profession]
+            elif o == 'g':
+                dirlevels += [gametypes]
+            elif o == 'r':
+                dirlevels += [ratings]
+        if dirorder.find('r') > -1:
             rateinname = ''
         else:
             rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
@@ -152,7 +157,7 @@ def get_build(i):
                 if (len(codes) > 1) and ('Hero' in gametypes) and ('General' in gametypes):
                     if d.find('Hero') > -1:
                         write_build(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt', codes[1])
-                    elif parameters.find('g') > -1:
+                    elif dirorder.find('g') == -1:
                         write_build(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt', codes[1])
                         write_build(file_name_sub(i, d) + rateinname + '.txt', codes[0])
                 else:
@@ -183,7 +188,7 @@ def write_build(filename, code):
         archivename = filename.replace('./PvX Build Packs/','')
         zip_file_write(TopDir, archivename, code)
         #If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs. Overridden by 'y'.
-        if re.search(r'[bcfgpq]', parameters) and not re.search('y', parameters):
+        if re.search(r'[bcoq]', parameters) and not re.search('y', parameters):
             return
         zip_file_write('All Build Packs', archivename, code)
         if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team']:
@@ -204,6 +209,16 @@ def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
     filename = directory + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
+
+def change_dir_order():
+    orderstr = print_prompt('Enter the order for the directories (using "f", "p", "g", "r").\r\n   f = flux\r\n   p = profession\r\n   g = gametype\r\n   r = rating\r\n   (leave blank for no subfolders)\r\n')
+    if re.search(r'[^fgpr]', orderstr):
+        print_log('Invalid characters in selection.', 'yes')
+        return False
+    if re.search(r'([fgpr]).*\1', orderstr):
+        print_log('Multiple of same character in selection.', 'yes')
+        return False
+    return orderstr
 
 def category_selection(ALLCATS):
     categories = []
