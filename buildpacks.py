@@ -10,17 +10,15 @@ import zipfile
 conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
 parameters = input('Parameters (h for help): ')
 while parameters.find('h') > -1:
-    print('a: save Any/X builds.')
+    print('a: don\'t save Any/X builds.')
     print('b: block consolidated packs explicitly.')
     print('c: list and choose from preset categories.')
-    print('f: add flux sort.')
-    print('g: remove gametype sort.')
-    print('p: add profession sort.')
+    print('o: change folder layout.')
     print('q: manual category entry. Enter as many categories as you want.')
-    print('r: adds rating sort. Ratings no longer in file names.')
     print('s: silent mode.')
     print('t: save text files even when saving zip files.')
     print('w: write log.')
+    print('y: build consolidated packs even with category/sort selects (overrides "b")')
     print('z: save as zip files.')
     parameters = input('Parameters: ')
 
@@ -36,7 +34,13 @@ def main():
         print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
     else:
         http_failure('Start', r1.status, r1.response, r1.getheaders())
-
+    
+    if parameters.find('o') > -1:
+        dirorder = False
+        while dirorder == False:
+            dirorder = change_dir_order()
+    else:
+        dirorder = 'g'
     #Check for category selection modes. If none of these, just grab the tested builds.
     categories = []
     if parameters.find('q') > -1:
@@ -79,14 +83,14 @@ def main():
 
     # Process the builds
     for i in pagelist:
-        redirect = get_build(i)
-        if redirect == True:
+        redirect = get_build(i, dirorder)
+        if not redirect == None:
             pagelist.insert(pagelist.index(i) + 1, redirect)
     print_log("Script complete.", 'yes')
 
-def get_build(i):
+def get_build(i, dirorder):
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
-    if (i.find('Any/') > -1) and (parameters.find('a') == -1):
+    if (i.find('Any/') > -1) and (parameters.find('a') > -1):
         print_log(i + " skipped (empty primary profession).")
         return
     print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
@@ -97,10 +101,23 @@ def get_build(i):
     if response.status == 200:
         # Grab the codes first
         codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
-        # If no template codes found on the build page, skip the build
+        # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
-            print_log('No template code found for ' + i + '. Skipped.')
-            return
+            print_log('No build template found on page for ' + i + '.', 'yes')
+            skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
+            if not re.search('s', skip) == None:
+                return i
+            else:
+                return
+        #Some people don't remember to assign the secondary profession and this happens...
+        for c in codes:
+            if c == '':
+                print_log('Warning: Blank code found in ' + i + '! (code #: ' + code.index + ')', 'yes')
+                skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
+                if not re.search('s', skip) == None:
+                    return i
+                else:
+                    return
         #Grab all the other build info
         fluxes = id_fluxes(page)
         profession = id_profession(i)
@@ -108,14 +125,16 @@ def get_build(i):
         ratings = id_ratings(page)
         # Create the directories
         dirlevels = []
-        if parameters.find('f') > -1:
-            dirlevels += [fluxes]
-        if parameters.find('p') > -1:
-            dirlevels += [profession]
-        if parameters.find('g') == -1:
-            dirlevels += [gametypes]
-        if parameters.find('r') > -1:
-            dirlevels += [ratings]
+        for o in dirorder:
+            if o == 'f':
+                dirlevels += [fluxes]
+            elif o == 'p':
+                dirlevels += [profession]
+            elif o == 'g':
+                dirlevels += [gametypes]
+            elif o == 'r':
+                dirlevels += [ratings]
+        if dirorder.find('r') > -1:
             rateinname = ''
         else:
             rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
@@ -124,7 +143,7 @@ def get_build(i):
         directories = directory_tree(dirlevels)
         # If we're making a log file, inlcude the build info
         if parameters.find('w') > -1:
-            log_write('Fluxes found: ' + str(fluxes) + ' - Profession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes) + '\r\nDirectories used: ' + str(directories) + '\r\n')
+            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes) + '\r\nDirectories used: ' + str(directories) + '\r\n')
         # Check to see if the build is a team build
         if i.find('Team') >= 1 and len(codes) > 1:
             num = 0
@@ -138,7 +157,7 @@ def get_build(i):
                 if (len(codes) > 1) and ('Hero' in gametypes) and ('General' in gametypes):
                     if d.find('Hero') > -1:
                         write_build(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt', codes[1])
-                    elif parameters.find('g') > -1:
+                    elif dirorder.find('g') == -1:
                         write_build(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt', codes[1])
                         write_build(file_name_sub(i, d) + rateinname + '.txt', codes[0])
                 else:
@@ -168,8 +187,8 @@ def write_build(filename, code):
             TopDir = 'PvX Build Packs'
         archivename = filename.replace('./PvX Build Packs/','')
         zip_file_write(TopDir, archivename, code)
-        #If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs.
-        if re.search(r'[bcfgpq]', parameters):
+        #If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs. Overridden by 'y'.
+        if re.search(r'[bcoq]', parameters) and not re.search('y', parameters):
             return
         zip_file_write('All Build Packs', archivename, code)
         if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team']:
@@ -190,6 +209,16 @@ def file_name_sub(build, directory):
     #Handles required substitutions for build filenames
     filename = directory + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
+
+def change_dir_order():
+    orderstr = print_prompt('Enter the order for the directories (using "f", "p", "g", "r").\r\n   f = flux\r\n   p = profession\r\n   g = gametype\r\n   r = rating\r\n   (leave blank for no subfolders)\r\n')
+    if re.search(r'[^fgpr]', orderstr):
+        print_log('Invalid characters in selection.', 'yes')
+        return False
+    if re.search(r'([fgpr]).*\1', orderstr):
+        print_log('Multiple of same character in selection.', 'yes')
+        return False
+    return orderstr
 
 def category_selection(ALLCATS):
     categories = []

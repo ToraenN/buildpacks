@@ -46,14 +46,11 @@ def main():
     # Process the builds
     for i in pagelist:
         redirect = get_build(i)
-        if redirect == True:
+        if not redirect == None:
             pagelist.insert(pagelist.index(i) + 1, redirect)
     input("Script complete.")
 
 def get_build(i):
-    if i.find('Any/') > -1:
-        print(i + " skipped (empty primary profession).")
-        return
     print("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
     conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
     response = conn.getresponse()
@@ -62,10 +59,23 @@ def get_build(i):
     if response.status == 200:
         # Grab the codes first
         codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
-        # If no template codes found on the build page, skip the build
+        # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
-            print('No template code found for ' + i + '. Skipped.')
-            return
+            print_log('No build template found on page for ' + i + '.')
+            skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
+            if not re.search('s', skip) == None:
+                return i
+            else:
+                return
+        #Some people don't remember to assign the secondary profession and this happens...
+        for c in codes:
+            if c == '':
+                print_log('Warning: Blank code found in ' + i + '! (code #: ' + code.index + ')')
+                skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
+                if not re.search('s', skip) == None:
+                    return i
+                else:
+                    return
         #Grab all the other build info
         gametypes = id_gametypes(page)
         ratings = id_ratings(page)
