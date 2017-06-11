@@ -4,6 +4,7 @@ import http.client
 import re
 import os
 import os.path
+import time
 import urllib.request, urllib.parse, urllib.error
 import zipfile
 
@@ -26,6 +27,9 @@ def main():
     global conn
     global parameters
     if parameters.find('w') > -1:
+        global logname
+        datetime = time.gmtime()
+        logname = './buildpacklog ' + str(datetime[1]).zfill(2) + str(datetime[2]).zfill(2) + str(datetime[3]).zfill(2) + str(datetime[4]).zfill(2) + str(datetime[5]).zfill(2) + '.txt'
         log_write('Parameters: ' + parameters + '\r\n')
     conn.request('GET', '/PvX_wiki')
     r1 = conn.getresponse()
@@ -34,14 +38,14 @@ def main():
         print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
     else:
         http_failure('Start', r1.status, r1.response, r1.getheaders())
-    
+    # If we're changing the sorts, call the function until the user inputs something valid. Otherwise default to gametype-only sort.
     if parameters.find('o') > -1:
         dirorder = False
         while dirorder == False:
             dirorder = change_dir_order()
     else:
         dirorder = 'g'
-    #Check for category selection modes. If none of these, just grab the tested builds.
+    # Check for category selection modes. If none of these, just grab the tested builds.
     categories = []
     if parameters.find('q') > -1:
         manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
@@ -49,11 +53,17 @@ def main():
             categories += [manualcatentry.replace(' ','_')]
             manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
     if parameters.find('c') > -1:
-        if 'y' in print_prompt('Do you want any PvP builds? (y/n)'):
-            categories += category_selection(['All_working_AB_builds', 'All_working_FA_builds', 'All_working_JQ_builds', 'All_working_RA_builds', 'All_working_GvG_builds', 'All_working_HA_builds', 'All_working_PvP_team_builds'])
-        if 'y' in print_prompt('Do you want any PvE builds? (y/n)'):
-            categories += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds'])
-        if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n)'):
+        if 'y' in print_prompt('Do you want any PvP builds? (y/n) '):
+            if 'y' in print_prompt('All of them? (y/n) '):
+                categories += ['All_working_PvP_builds']
+            else:
+                categories += category_selection(['All_working_AB_builds', 'All_working_FA_builds', 'All_working_JQ_builds', 'All_working_RA_builds', 'All_working_GvG_builds', 'All_working_HA_builds', 'All_working_PvP_team_builds'])
+        if 'y' in print_prompt('Do you want any PvE builds? (y/n) '):
+            if 'y' in print_prompt('All of them? (y/n) '):
+                categories += ['All_working_PvE_builds']
+            else:
+                categories += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_PvE_team_builds'])
+        if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n) '):
             categories += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds','WELL'])
     if len(categories) == 0:
         # Default to all currently vetted builds, including the auto-archiving Flux builds.
@@ -81,7 +91,7 @@ def main():
             print_log("Build listing for " + catname.replace('_',' ') + " failed.")
     print_log(str(len(pagelist)) + ' builds found!', 'yes')
 
-    # Process the builds
+    # Process the builds, redirect is defined only if the get_build function encounters an error
     for i in pagelist:
         redirect = get_build(i, dirorder)
         if not redirect == None:
@@ -109,7 +119,7 @@ def get_build(i, dirorder):
                 return i
             else:
                 return
-        #Some people don't remember to assign the secondary profession and this happens...
+        # Some people don't remember to assign the secondary profession and this happens...
         for c in codes:
             if c == '':
                 print_log('Warning: Blank code found in ' + i + '! (code #: ' + code.index + ')', 'yes')
@@ -118,7 +128,7 @@ def get_build(i, dirorder):
                     return i
                 else:
                     return
-        #Grab all the other build info
+        # Grab all the other build info
         fluxes = id_fluxes(page)
         profession = id_profession(i)
         gametypes = id_gametypes(page)
@@ -134,6 +144,7 @@ def get_build(i, dirorder):
                 dirlevels += [gametypes]
             elif o == 'r':
                 dirlevels += [ratings]
+        # Determine if the rating needs to go in the build name
         if dirorder.find('r') > -1:
             rateinname = ''
         else:
@@ -157,6 +168,7 @@ def get_build(i, dirorder):
                 if (len(codes) > 1) and ('Hero' in gametypes) and ('General' in gametypes):
                     if d.find('Hero') > -1:
                         write_build(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt', codes[1])
+                    # If we're not sorting by gametype, save both versions
                     elif dirorder.find('g') == -1:
                         write_build(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt', codes[1])
                         write_build(file_name_sub(i, d) + rateinname + '.txt', codes[0])
@@ -175,23 +187,26 @@ def get_build(i, dirorder):
         print_log(i + " failed.")
 
 def write_build(filename, code):
+    # Check if we're writing text files
     if parameters.find('t') > -1 or parameters.find('z') == -1:
         with open(filename, 'w') as outfile:
             outfile.write(code)
+    # Check if we're writing zip files
     if parameters.find('z') > -1:
         if not os.path.isdir('./Zipped Build Packs'):
             os.makedirs('./Zipped Build Packs')
         try:
             TopDir = (re.search(r'PvX Build Packs/([\w\s]*?)/', filename)).group(1)
+        # If we aren't doing any sorts, make sure we have a top-level directory to put everything in
         except AttributeError:
             TopDir = 'PvX Build Packs'
         archivename = filename.replace('./PvX Build Packs/','')
         zip_file_write(TopDir, archivename, code)
-        #If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs. Overridden by 'y'.
+        # If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs. Overridden by 'y'.
         if re.search(r'[bcoq]', parameters) and not re.search('y', parameters):
             return
         zip_file_write('All Build Packs', archivename, code)
-        if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team']:
+        if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team','TA','CM','HB']:
             zip_file_write('PvP Build Packs', archivename, code)
         if TopDir in ['General','Hero','Farming','Running','SC','PvE team']:
             zip_file_write('PvE Build Packs', archivename, code)
@@ -206,12 +221,12 @@ def zip_file_write(packname, archivename, code):
             print_log(archivename + " already present in " + packname + ".zip!")
 
 def file_name_sub(build, directory):
-    #Handles required substitutions for build filenames
+    # Handles required substitutions for build filenames
     filename = directory + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def change_dir_order():
-    orderstr = print_prompt('Enter the order for the directories (using "f", "p", "g", "r").\r\n   f = flux\r\n   p = profession\r\n   g = gametype\r\n   r = rating\r\n   (leave blank for no subfolders)\r\n')
+    orderstr = print_prompt('Enter the order of the sorts (using "f", "p", "g", "r") or leave blank for no sorting.\r\n   f = flux\r\n   p = profession\r\n   g = gametype\r\n   r = rating\r\nSort order: ')
     if re.search(r'[^fgpr]', orderstr):
         print_log('Invalid characters in selection.', 'yes')
         return False
@@ -220,9 +235,9 @@ def change_dir_order():
         return False
     return orderstr
 
-def category_selection(ALLCATS):
+def category_selection(catlist):
     categories = []
-    for a in ALLCATS:
+    for a in catlist:
         answer = print_prompt('Would you like to compile ' + a.replace('_',' ') + '? (y/n) ')
         if answer == 'y':
             categories += [a]
@@ -246,9 +261,11 @@ def directory_tree(dirlevels):
        for d in dirlevels[3]:
         for e in dirlevels[4]:
          addeddir = './PvX Build Packs/' + a + '/' + b + '/' + c + '/' + d + '/' + e + '/'
+         # '//' will mess up zip writing
          while addeddir.find('//') > -1:
              addeddir = addeddir.replace('//','/')
          directories += [addeddir]
+    # Only create directories if saving text files
     if (parameters.find('t') > -1) or (parameters.find('z') == -1):
         for folder in directories:
             if not os.path.isdir(folder):
@@ -284,7 +301,8 @@ def id_gametypes(page):
             cleanedtype = (re.sub('Pv[EP]<br />', '', t)).title()
         else:
             cleanedtype = re.sub('Pv[EP]<br />', '', t)
-        if not cleanedtype in gametypes: # Apparently I cannot trust that everyone will avoid putting in duplicate tags
+        # Apparently I cannot trust that everyone will avoid putting in duplicate tags
+        if not cleanedtype in gametypes:
             gametypes += [cleanedtype]
     return gametypes
 
@@ -292,13 +310,15 @@ def id_ratings(page):
     ratings = []
     if page.find('This build is part of the current metagame.') > -1:
         ratings += ['Meta']
-    #A second if statement because builds can have both Meta and one of Good/Great
+    # A second if statement because builds can have both Meta and one of Good/Great
     if page.find('in the range from 4.75') > -1:
         ratings += ['Great']
     elif page.find('in the range from 3.75') > -1:
         ratings += ['Good']
     elif page.find('below 3.75') > -1:
         ratings += ['Trash']
+    elif re.search(r'This build article is a <a.*?>stub</a>', page):
+        ratings += ['Stub']
     elif page.find('in the <i>trial</i> phase.') > -1:
         ratings += ['Trial']
     elif page.find('This build is currently being tested.') > -1:
@@ -324,7 +344,7 @@ def print_log(string, alwaysdisplay = 'no'):
         log_write(str(string) + '\r\n')
 
 def log_write(string):
-    with open('./buildpackslog.txt', 'a') as textlog:
+    with open(logname, 'a') as textlog:
         textlog.write(string)
 
 def http_failure(attempt, response, reason, headers):
