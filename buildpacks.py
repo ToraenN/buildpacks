@@ -8,36 +8,7 @@ import time
 import urllib.request, urllib.parse, urllib.error
 import zipfile
 
-def main():
-    global conn
-    global parameters
-    conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
-    parameters = input('Parameters (h for help): ')
-    while 'h' in parameters:
-        print('a: don\'t save Any/X builds.')
-        print('b: block consolidated packs explicitly.')
-        print('c: list and choose from preset categories.')
-        print('o: change folder layout.')
-        print('q: manual category entry. Enter as many categories as you want.')
-        print('s: silent mode.')
-        print('t: save text files even when saving zip files.')
-        print('w: write log.')
-        print('y: build consolidated packs even with category/sort selects (overrides "b")')
-        print('z: save as zip files.')
-        parameters = input('Parameters: ')
-    if 'w' in parameters:
-        global logname
-        datetime = format_time()
-        logname = './buildpacklog ' + datetime[2] + '.txt'
-        log_write(datetime[0])
-        log_write('Parameters: ' + parameters)
-    conn.request('GET', '/PvX_wiki')
-    r1 = conn.getresponse()
-    conn.close()
-    if r1.status == 200:
-        print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
-    else:
-        http_failure('Start', r1.status, r1.response, r1.getheaders())
+def setup_builds():
     # If we're changing the sorts, call the function until the user inputs something valid. Otherwise default to gametype-only sort.
     if 'o' in parameters:
         dirorder = False
@@ -45,9 +16,21 @@ def main():
             dirorder = change_dir_order()
     else:
         dirorder = 'g'
+
+    # Restriction filtering setup
+    if 'l' in parameters:
+        print_log('For each sort, enter a comma-separated list of which attributes you\'d like to limit to. Leave blank to ignore that sort.')
+        rdfluxes = restrict_dirs('fluxes')
+        rdprofessions = rdprofessions = restrict_dirs('professions')
+        rdgametypes = rdgametypes = restrict_dirs('gametypes')
+        rdratings = rdratings = restrict_dirs('ratings')
+        rdirs = [rdfluxes, rdprofessions, rdgametypes, rdratings]
+    else:
+        rdirs = None
+
     # Check for category selection modes. If none of these, just grab the tested builds.
     categories = []
-    if 'q' in parameters:
+    if 'm' in parameters:
         manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
         while manualcatentry != '':
             categories += [manualcatentry.replace(' ','_')]
@@ -70,12 +53,17 @@ def main():
         print_log("Using default categories.", "yes")
         categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
 
+    # Fetch the builds from the categories.
     pagelist = []
     for cat in categories:
         # This done so you don't have a massive page id displayed for category continuations.
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
         print_log("Assembling build list for " + catname.replace('_',' ') + "...")
-        conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
+        try:
+            conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
+        except:
+            print_prompt('Internet connection lost.')
+            return
         response = conn.getresponse()
         page = str(response.read())
         conn.close()
@@ -93,18 +81,20 @@ def main():
 
     # Process the builds, redirect is defined only if the get_build function encounters an error
     for i in pagelist:
-        redirect = get_build(i, dirorder)
+        redirect = get_build(i, dirorder, rdirs)
         if not redirect == None:
             pagelist.insert(pagelist.index(i) + 1, redirect)
-    print_log("Script complete.", 'yes')
 
-def get_build(i, dirorder):
+def get_build(i, dirorder, rdirs):
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
     if 'Any/' in i and 'a' in parameters:
         print_log(i + " skipped (empty primary profession).")
         return
     print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
-    conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
+    try:
+        conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
+    except:
+        return build_error('Internet connection lost.','er',i)
     response = conn.getresponse()
     page = str(response.read())
     conn.close()
@@ -115,12 +105,12 @@ def get_build(i, dirorder):
         if len(codes) == 0:
             resolution = build_error('No build template found on page for ' + i + '.', 'ers', i)
             return resolution
-        # Some people don't remember to assign the secondary profession and this happens...
+        # Template discrepancies (missing profession, impossible atts, duplicated skills, etc.) cause this error
         for c in codes:
             if c == '':
                 resolution = build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', 'ecrs', i)
                 if resolution == 'c':
-                    break
+                    continue
                 else:
                     return resolution
         # Grab all the other build info
@@ -128,6 +118,41 @@ def get_build(i, dirorder):
         profession = id_profession(i)
         gametypes = id_gametypes(page)
         ratings = id_ratings(page)
+        if 'w' in parameters:
+            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes))
+        # Check for restrictions and skip build if a restriction has no matches
+        if rdirs != None:
+            rfluxes = []
+            rgametypes = []
+            rratings = []
+            if rdirs[0] != None:
+                for f in fluxes:
+                    if f in rdirs[0]:
+                        rfluxes += [f]
+                if len(rfluxes) == 0:
+                    print_log('Fluxes don\'t match restriction. Skipping.')
+                    return
+                fluxes = rfluxes
+            if rdirs[1] != None:
+                if not profession[0] in rdirs[1]:
+                    print_log('Profession doesn\'t match restriction. Skipping.')
+                    return
+            if rdirs[2] != None:
+                for g in gametypes:
+                    if g in rdirs[2]:
+                        rgametypes += [g]
+                if len(rgametypes) == 0:
+                    print_log('Gametypes don\'t match restriction. Skipping.')
+                    return
+                gametypes = rgametypes
+            if rdirs[3] != None:
+                for r in ratings:
+                    if r in rdirs[3]:
+                        rratings += [r]
+                if len(rratings) == 0:
+                    print_log('Ratings don\'t match restriction. Skipping.')
+                    return
+                ratings = rratings
         # Create the directories
         dirlevels = []
         for o in dirorder:
@@ -147,9 +172,9 @@ def get_build(i, dirorder):
         if 'Team' in i and len(codes) > 1:
             dirlevels += [[(file_name_sub(i,'') + rateinname)]]
         directories = directory_tree(dirlevels)
-        # If we're making a log file, inlcude the build info
+        # If we're making a log file, inlcude the directory info
         if 'w' in parameters:
-            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes) + '\r\nDirectories used: ' + str(directories))
+            log_write('Directories used: ' + str(directories))
         # Check to see if the build is a team build
         if 'Team' in i and len(codes) > 1:
             num = 0
@@ -178,7 +203,7 @@ def get_build(i, dirorder):
         print_log('301 redirection...')
         return newpagename
     else:
-        http_failure(i, response.status, response.reason, response.getheaders())
+        build_error('HTTPConnection error encountered: ' + str(response.status) + ' - ' + str(response.reason), 'ers', i, response.getheaders())
         print_log(i + " failed.")
 
 def write_build(filename, code):
@@ -198,7 +223,7 @@ def write_build(filename, code):
         archivename = filename.replace('./PvX Build Packs/','')
         zip_file_write(TopDir, archivename, code)
         # If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs. Overridden by 'y'.
-        if re.search(r'[bcoq]', parameters) and not 'y' in parameters:
+        if re.search(r'[bclmo]', parameters) and not 'y' in parameters:
             return
         zip_file_write('All Build Packs', archivename, code)
         if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team','TA','CM','HB']:
@@ -216,7 +241,6 @@ def zip_file_write(packname, archivename, code):
             print_log(archivename + " already present in " + packname + ".zip!")
 
 def file_name_sub(build, directory):
-    # Handles required substitutions for build filenames
     filename = directory + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
@@ -229,6 +253,18 @@ def change_dir_order():
         print_log('Multiple of same character in selection.', 'yes')
         return False
     return orderstr
+
+def restrict_dirs(sort):
+    answer = print_prompt('Which ' + sort + ' do you want to save? ')
+    while re.search(r'[^\'A-Za-z,\s]', answer) != None:
+        answer = print_prompt('Invalid characters entered. Please reenter: ')
+    if len(answer) == 0:
+        return None
+    list = answer.split(',')
+    final = []
+    for l in list:
+        final += [l.strip()]
+    return final
 
 def category_selection(catlist):
     categories = []
@@ -369,15 +405,17 @@ def format_time():
     filesuffix = str(datetime[1]).zfill(2) + str(datetime[2]).zfill(2) + str(datetime[3]).zfill(2) + str(datetime[4]).zfill(2) + str(datetime[5]).zfill(2)
     return (curdate, curtime, filesuffix)
 
-def build_error(error, options, build):
+def build_error(error, options, build, headers = None):
     print_log(error, 'yes')
+    if 'w' in parameters and headers != None:
+        log_write('----\r\n' + str(headers) + '\r\n----')
     resprompt = 'Please choose one of the following options:\r\n'
     if 'c' in options:
         resprompt += 'c = continue the build (with errors)\r\n'
     if 'e' in options:
         resprompt += 'e = exit the script\r\n'
     if 'r' in options:
-        resprompt += 'r = reattempt the build\r\n'
+        resprompt += 'r = reattempt the build (you should fix the issue first)\r\n'
     if 's' in options:
         resprompt += 's = skip the build\r\n'
     resprompt += 'Type the letter corresponding to your choice: '
@@ -394,4 +432,40 @@ def build_error(error, options, build):
         return None
 
 if __name__ == "__main__":
-    main()
+    global conn
+    global parameters
+    parameters = input('Parameters (h for help): ')
+    while 'h' in parameters:
+        print('a: don\'t save Any/X builds.')
+        print('b: block consolidated zip packs explicitly.')
+        print('c: list and choose from preset categories.')
+        print('l: limit saved builds by sort attribute.')
+        print('m: manual category entry. Enter as many categories as you want.')
+        print('o: change folder layout.')
+        print('s: silent mode.')
+        print('t: save text files even when saving zip files.')
+        print('w: write log.')
+        print('y: build consolidated packs even with category/sort selects (overrides "b")')
+        print('z: save as zip files.')
+        parameters = input('Parameters: ')
+    if 'w' in parameters:
+        global logname
+        datetime = format_time()
+        logname = './buildpacklog ' + datetime[2] + '.txt'
+        log_write(datetime[0])
+        log_write('Parameters: ' + parameters)
+    # Setup the connection and test the servers
+    conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
+    try:
+        conn.request('GET', '/PvX_wiki')
+    except:
+        print_log('Turn on your internet scrub.','yes')
+    else:
+        r1 = conn.getresponse()
+        conn.close()
+        if r1.status == 200:
+            print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
+        else:
+            http_failure('Start', r1.status, r1.response, r1.getheaders())
+        setup_builds()
+    print_prompt("Script complete.")

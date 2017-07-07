@@ -23,9 +23,11 @@ c : to have the program list all preprogrammed categories and ask the user which
 
 h : displays the list of available parameters. Any other parameters are ignored and the prompt is brought up again.
 
-o : allows the user to add, remove, and reorganize the sorting. Builds can be sorted by Flux, Profession, Gametype and Rating in any order. By default, builds are sorted by Gametype only (the rating is placed in the filename).
+l : limits builds saved based on sort criteria.
 
-q : to manually enter categories to compile.
+m : to manually enter categories to compile.
+
+o : allows the user to add, remove, and reorganize the sorting. Builds can be sorted by Flux, Profession, Gametype and Rating in any order. By default, builds are sorted by Gametype only (the rating is placed in the filename).
 
 s : blocks most of the progress messages from standard output. Errors are still displayed.
 
