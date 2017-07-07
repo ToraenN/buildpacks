@@ -7,89 +7,68 @@ import os.path
 import urllib.request, urllib.parse, urllib.error
 import zipfile
 
-conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
-
-def main():
-    global conn
-    conn.request('GET', '/PvX_wiki')
-    r1 = conn.getresponse()
-    conn.close()
-    if r1.status == 200:
-        print("Holy shit! Curse is actually working. Now let's start getting that build data.")
-    else:
-        input("Curse's servers are (probably) down. Try again later.")
-        raise SystemExit()
-
-    CATEGORIES = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
-
+def setup_builds():
+    categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
     pagelist = []
-    for cat in CATEGORIES:
-        # This done so you don't have a massive page id displayed for category continuations.
+    for cat in categories:
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
         print("Assembling build list for " + catname.replace('_',' ') + "...")
-        conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
+        try:
+            conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
+        except:
+            input('Internet connection lost.')
+            return
         response = conn.getresponse()
         page = str(response.read())
         conn.close()
-        # Check if a continuation was offered due to the category having more members than the display limit
         continuestr = re.search(r'(page\|.*\|.*)",', page)
         if continuestr:
-            CATEGORIES += [catname + '&cmcontinue=' + continuestr.group(1)]
+            categories += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
             pagelist = category_page_list(page, pagelist)
             print("Builds from " + catname.replace('_',' ') + " added to list!")
         else:
-            input("Build listing for " + catname.replace('_',' ') + " failed. Ending script.")
-            raise SystemExit()
+            http_failure(cat, response.status, response.reason, response.getheaders())
+            print("Build listing for " + catname.replace('_',' ') + " failed.")
     print(str(len(pagelist)) + ' builds found!')
 
-    # Process the builds
     for i in pagelist:
         redirect = get_build(i)
         if not redirect == None:
             pagelist.insert(pagelist.index(i) + 1, redirect)
-    input("Script complete.")
 
 def get_build(i):
     print("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
-    conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
+    try:
+        conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
+    except:
+        return build_error('Internet connection lost.','er',i)
     response = conn.getresponse()
     page = str(response.read())
     conn.close()
     if response.status == 200:
-        # Grab the codes first
         codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
-        # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
-            print_log('No build template found on page for ' + i + '.')
-            skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
-            if not re.search('s', skip) == None:
-                return i
-            else:
-                return
-        #Some people don't remember to assign the secondary profession and this happens...
+            resolution = build_error('No build template found on page for ' + i + '.', 'ers', i)
+            return resolution
         for c in codes:
             if c == '':
-                print_log('Warning: Blank code found in ' + i + '! (code #: ' + code.index + ')')
-                skip = print_prompt('Press enter to reattempt after fixing the build page. (type "s" to skip)')
-                if not re.search('s', skip) == None:
-                    return i
+                resolution = build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', 'ecrs', i)
+                if resolution == 'c':
+                    continue
                 else:
-                    return
-        #Grab all the other build info
+                    return resolution
+
         gametypes = id_gametypes(page)
         ratings = id_ratings(page)
-        # Create the directories
-        directories = []
-        for g in gametypes:
-            for r in ratings:
-                if i.find('Team') >= 1 and len(codes) > 1:
-                    teamdir = file_name_sub(i,'') + '/'
-                else:
-                    teamdir = ''
-                directories += ['./PvX Build Packs/' + g + '/' + r + '/' + teamdir]
-        # Check to see if the build is a team build
-        if i.find('Team') >= 1 and len(codes) > 1:
+
+        dirlevels = [gametypes]
+        rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
+        if 'Team' in i and len(codes) > 1:
+            dirlevels += [[(file_name_sub(i,'') + rateinname)]]
+        directories = directory_tree(dirlevels)
+
+        if 'Team' in i and len(codes) > 1:
             num = 0
             for j in codes:
                 num += 1
@@ -97,23 +76,24 @@ def get_build(i):
                     write_build(file_name_sub(i, d) + ' - ' + str(num) + '.txt', j)
         else:
             for d in directories:
-                # Check for a non-team build with both player and hero versions, and sort them appropriately
-                if (len(codes) > 1) and ('Hero' in gametypes) and ('General' in gametypes):
-                    if d.find('Hero') > -1:
-                        write_build(file_name_sub(i, d) + ' - Hero.txt', codes[1])
+                if len(codes) > 1 and 'Hero' in gametypes and 'General' in gametypes:
+                    if 'Hero' in d:
+                        write_build(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt', codes[1])
                 else:
-                    write_build(file_name_sub(i, d) + '.txt', codes[0])
+                    write_build(file_name_sub(i, d) + rateinname + '.txt', codes[0])
         print(i + " complete.")
     elif response.status == 301:
-        # Follow the redirect
         headers = str(response.getheaders())
         newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
         newpagename = newpagestr[0].replace('gwpvx.gamepedia.com/','').replace("')",'').replace('_',' ')
         print('301 redirection...')
         return newpagename
+    elif response.status == 504:
+        print('Gateway Time Out. Retrying...')
+        return i
     else:
-        input(i + " failed. Ending script.") 
-        raise SystemExit()
+        resolution = build_error('HTTPConnection error encountered: ' + str(response.status) + ' - ' + str(response.reason), 'ers', i, response.getheaders())
+        return resolution
 
 def write_build(filename, code):
     if not os.path.isdir('./Zipped Build Packs'):
@@ -122,7 +102,7 @@ def write_build(filename, code):
     archivename = filename.replace('./PvX Build Packs/','')
     zip_file_write(TopDir, archivename, code)
     zip_file_write('All Build Packs', archivename, code)
-    if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team']:
+    if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team','TA','CM','HB']:
         zip_file_write('PvP Build Packs', archivename, code)
     if TopDir in ['General','Hero','Farming','Running','SC','PvE team']:
         zip_file_write('PvE Build Packs', archivename, code)
@@ -137,49 +117,113 @@ def zip_file_write(packname, archivename, code):
             print(archivename + " already present in " + packname + ".zip!")
 
 def file_name_sub(build, directory):
-    #Handles required substitutions for build filenames
-    filename = directory + (urllib.parse.unquote(build)).replace('Build:','').replace('/','_').replace('"','\'\'')
+    filename = directory + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def category_page_list(page, newlist):
-    pagelist = re.findall('"(Build:.*?)"\}', page)
+    pagelist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
     for i in pagelist:
         current = i.replace('\\','')
         if not current in newlist:
             newlist += [current]
     return newlist
 
+def directory_tree(dirlevels):
+    while len(dirlevels) < 2:
+        dirlevels += [['']]
+    directories = []
+    for a in dirlevels[0]:
+        for b in dirlevels[1]:
+            addeddir = './PvX Build Packs/' + a + '/' + b + '/'
+            while '//' in addeddir:
+                addeddir = addeddir.replace('//','/')
+            directories += [addeddir]
+    return directories
+
 def id_gametypes(page):
-    # Finds the build-types div, and then extracts the tags. Two checks for: build-types div isn't found or if it has no tags in it.
     builddiv = re.search('<div class="build-types">.*?</div>', page, re.DOTALL)
     if not builddiv:
         return ['Uncategorized']
     rawtypes = re.findall('Pv[EP]<br />\w+', builddiv.group())
     if len(rawtypes) == 0:
         return ['Uncategorized']
-    # Build the gametypes list based on the tags
     gametypes = []
     for t in rawtypes:
-        if t.find('team') > -1:
+        if 'team' in t:
             cleanedtype = re.sub('<br />', ' ', t)
         elif len(t) > 12:
             cleanedtype = (re.sub('Pv[EP]<br />', '', t)).title()
         else:
             cleanedtype = re.sub('Pv[EP]<br />', '', t)
-        if not cleanedtype in gametypes: # Apparently I cannot trust that everyone will avoid putting in duplicate tags
+        if not cleanedtype in gametypes:
             gametypes += [cleanedtype]
     return gametypes
 
 def id_ratings(page): 
     ratings = []
-    if page.find('This build is part of the current metagame.') > -1:
+    if 'This build is part of the current metagame.' in page:
         ratings += ['Meta']
-    #A second if statement because builds can have both Meta and one of Good/Great
-    if page.find('in the range from 4.75') > -1:
+    if 'in the range from 4.75' in page:
         ratings += ['Great']
-    elif page.find('in the range from 3.75') > -1:
+    elif 'in the range from 3.75' in page:
         ratings += ['Good']
+    if ratings == []:
+        ratings = ['Nonrated']
     return ratings
 
+def http_failure(attempt, response, reason, headers):
+    print('HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason))
+    if attempt == 'Start':
+        print("Curse's servers are (probably) down. Try again later.")
+        raise SystemExit()
+    answer = input('Do you wish to continue the script? ' + str(attempt) + ' will be skipped. (y/n) ')
+    while not re.search('^[ny]$',answer):
+        answer = input('Please enter "y" or "n".')
+        if answer == 'y':
+            print('Ok, continuing...')
+        elif answer == 'n':
+            print('Ok, exiting...')
+            raise SystemExit()
+        else:
+            print("Please enter 'y' or 'n'.")
+
+def build_error(error, options, build, headers = None):
+    print(error)
+    resprompt = 'Please choose one of the following options:\r\n'
+    if 'c' in options:
+        resprompt += 'c = continue the build (with errors)\r\n'
+    if 'e' in options:
+        resprompt += 'e = exit the script\r\n'
+    if 'r' in options:
+        resprompt += 'r = reattempt the build (you should fix the issue first)\r\n'
+    if 's' in options:
+        resprompt += 's = skip the build\r\n'
+    resprompt += 'Type the letter corresponding to your choice: '
+    resolution = input(resprompt)
+    while re.search('^[' + options +']$', resolution) == None:
+        resolution = input('Please enter a valid option: ')
+    if resolution == 'c':
+        return resolution
+    elif resolution == 'e':
+        raise SystemExit()
+    elif resolution == 'r':
+        return build
+    elif resolution == 's':
+        return None
+
 if __name__ == "__main__":
-    main()
+    global conn
+    conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
+    try:
+        conn.request('GET', '/PvX_wiki')
+    except:
+        print('Turn on your internet scrub.','yes')
+    else:
+        r1 = conn.getresponse()
+        conn.close()
+        if r1.status == 200:
+            print("Holy shit! Curse is actually working. Now let's start getting that build data.")
+        else:
+            http_failure('Start', r1.status, r1.response, r1.getheaders())
+        setup_builds()
+    input("Script complete.")
