@@ -7,27 +7,9 @@ import os.path
 import time
 import urllib.request, urllib.parse, urllib.error
 import zipfile
+from collections import deque
 
-def setup_builds():
-    # If we're changing the sorts, call the function until the user inputs something valid. Otherwise default to gametype-only sort.
-    if 'o' in parameters:
-        dirorder = False
-        while dirorder == False:
-            dirorder = change_dir_order()
-    else:
-        dirorder = 'g'
-
-    # Restriction filtering setup
-    if 'l' in parameters:
-        print_log('For each sort, enter a comma-separated list of which attributes you\'d like to limit to. Leave blank to ignore that sort.')
-        rdfluxes = restrict_dirs('fluxes')
-        rdprofessions = rdprofessions = restrict_dirs('professions')
-        rdgametypes = rdgametypes = restrict_dirs('gametypes')
-        rdratings = rdratings = restrict_dirs('ratings')
-        rdirs = [rdfluxes, rdprofessions, rdgametypes, rdratings]
-    else:
-        rdirs = None
-
+def setup_categories():
     # Check for category selection modes. If none of these, just grab the tested builds.
     categories = []
     if 'm' in parameters:
@@ -54,11 +36,12 @@ def setup_builds():
         categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
 
     # Fetch the builds from the categories.
-    pagelist = []
-    for cat in categories:
+    pagelist = deque()
+    while categories:
+        cat = categories.pop()
         # This done so you don't have a massive page id displayed for category continuations.
-        catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
-        print_log("Assembling build list for " + catname.replace('_',' ') + "...")
+        catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat).replace('_',' ')
+        print_log("Assembling build list for " + catname + "...")
         try:
             conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         except:
@@ -72,18 +55,17 @@ def setup_builds():
         if continuestr:
             categories += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
-            pagelist = category_page_list(page, pagelist)
-            print_log("Builds from " + catname.replace('_',' ') + " added to list!")
+            catlist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
+            for buildname in catlist:
+                current = buildname.replace('\\','')
+                if not current in pagelist:
+                    pagelist += [current]
+            print_log("Builds from " + catname + " added to list!")
         else:
-            http_failure(cat, response.status, response.reason, response.getheaders())
-            print_log("Build listing for " + catname.replace('_',' ') + " failed.")
+            if build_error('HTTPConnection error encountered: ' + str(response.status) + ' - ' + str(response.reason), cat, response.getheaders()) != None:
+                categories.append(cat)
     print_log(str(len(pagelist)) + ' builds found!', 'yes')
-
-    # Process the builds, redirect is defined only if the get_build function encounters an error
-    for i in pagelist:
-        redirect = get_build(i, dirorder, rdirs)
-        if not redirect == None:
-            pagelist.insert(pagelist.index(i) + 1, redirect)
+    return pagelist
 
 def get_build(i, dirorder, rdirs):
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
@@ -91,10 +73,7 @@ def get_build(i, dirorder, rdirs):
         print_log(i + " skipped (empty primary profession).")
         return
     print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
-    try:
-        conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
-    except:
-        return build_error('Internet connection lost.','er',i)
+    conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
     response = conn.getresponse()
     page = str(response.read())
     conn.close()
@@ -103,16 +82,11 @@ def get_build(i, dirorder, rdirs):
         codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
         # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
-            resolution = build_error('No build template found on page for ' + i + '.', 'ers', i)
-            return resolution
+            return build_error('No build template found on page for ' + i + '.', i)
         # Template discrepancies (missing profession, impossible atts, duplicated skills, etc.) cause this error
         for c in codes:
             if c == '':
-                resolution = build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', 'ecrs', i)
-                if resolution == 'c':
-                    continue
-                else:
-                    return resolution
+                return build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', i)
         # Grab all the other build info
         fluxes = id_fluxes(page)
         profession = id_profession(i)
@@ -195,16 +169,15 @@ def get_build(i, dirorder, rdirs):
                 else:
                     write_build(file_name_sub(i, d) + rateinname + '.txt', codes[0])
         print_log(i + " complete.")
-    elif response.status == 301:
+    elif response.status == 301 or 302:
         # Follow the redirect
         headers = str(response.getheaders())
         newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
         newpagename = newpagestr[0].replace('gwpvx.gamepedia.com/','').replace("')",'').replace('_',' ')
-        print_log('301 redirection...')
+        print_log('Redirection...')
         return newpagename
     else:
-        build_error('HTTPConnection error encountered: ' + str(response.status) + ' - ' + str(response.reason), 'ers', i, response.getheaders())
-        print_log(i + " failed.")
+        build_error('HTTPConnection error encountered: ' + str(response.status) + ' - ' + str(response.reason), i, response.getheaders())
 
 def write_build(filename, code):
     # Check if we're writing text files
@@ -273,14 +246,6 @@ def category_selection(catlist):
         if answer == 'y':
             categories += [a]
     return categories
-
-def category_page_list(page, newlist):
-    pagelist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
-    for i in pagelist:
-        current = i.replace('\\','')
-        if not current in newlist:
-            newlist += [current]
-    return newlist
 
 def directory_tree(dirlevels):
     while len(dirlevels) < 5:
@@ -379,25 +344,6 @@ def log_write(string):
         timestamp = format_time()
         textlog.write(timestamp[1] + ': ' + string.replace('\r\n', '\r\n' + ' ' * 10) + '\r\n')
 
-def http_failure(attempt, response, reason, headers):
-    print_log('HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason), 'yes')
-    if 'w' in parameters:
-        log_write('----\r\n' + str(attempt) + '\r\n' + str(response) + ' - ' + str(reason) + '\r\n' + str(headers) + '\r\n----')
-    if attempt == 'Start':
-        print_log("Curse's servers are (probably) down. Try again later.", 'yes')
-        raise SystemExit()
-    # Require a definitive answer from the user
-    answer = print_prompt('Do you wish to continue the script? ' + str(attempt) + ' will be skipped. (y/n) ')
-    while not re.search('^[ny]$',answer):
-        answer = print_prompt('Please enter "y" or "n".')
-        if answer == 'y':
-            print_log('Ok, continuing...', 'yes')
-        elif answer == 'n':
-            print_log('Ok, exiting...', 'yes')
-            raise SystemExit()
-        else:
-            print_log("Please enter 'y' or 'n'.", 'yes')
-
 def format_time():
     datetime = time.gmtime()
     curdate = str(datetime[0]) + '.' + str(datetime[1]).zfill(2) + '.' + str(datetime[2]).zfill(2)
@@ -405,26 +351,14 @@ def format_time():
     filesuffix = str(datetime[1]).zfill(2) + str(datetime[2]).zfill(2) + str(datetime[3]).zfill(2) + str(datetime[4]).zfill(2) + str(datetime[5]).zfill(2)
     return (curdate, curtime, filesuffix)
 
-def build_error(error, options, build, headers = None):
+def build_error(error, build, headers = None):
     print_log(error, 'yes')
     if 'w' in parameters and headers != None:
         log_write('----\r\n' + str(headers) + '\r\n----')
-    resprompt = 'Please choose one of the following options:\r\n'
-    if 'c' in options:
-        resprompt += 'c = continue the build (with errors)\r\n'
-    if 'e' in options:
-        resprompt += 'e = exit the script\r\n'
-    if 'r' in options:
-        resprompt += 'r = reattempt the build (you should fix the issue first)\r\n'
-    if 's' in options:
-        resprompt += 's = skip the build\r\n'
-    resprompt += 'Type the letter corresponding to your choice: '
-    resolution = print_prompt(resprompt)
-    while re.search('^[' + options +']$', resolution) == None:
+    resolution = print_prompt('Please choose one of the following options:\ne = exit the script\nr = reattempt the build (you should fix the issue first)\ns = skip the build\nType the letter corresponding to your choice: ')
+    while re.search('^[ers]$', resolution) == None:
         resolution = print_prompt('Please enter a valid option: ')
-    if resolution == 'c':
-        return resolution
-    elif resolution == 'e':
+    if resolution == 'e':
         raise SystemExit()
     elif resolution == 'r':
         return build
@@ -455,7 +389,7 @@ if __name__ == "__main__":
         log_write(datetime[0])
         log_write('Parameters: ' + parameters)
     # Setup the connection and test the servers
-    conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
+    conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     try:
         conn.request('GET', '/PvX_wiki')
     except:
@@ -466,6 +400,29 @@ if __name__ == "__main__":
         if r1.status == 200:
             print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
         else:
-            http_failure('Start', r1.status, r1.response, r1.getheaders())
-        setup_builds()
+            print_log("Curse's servers are (probably) down. Try again later.\nThe provided error code is: " + str(response.status) + ' - ' + str(response.reason), 'yes')
+            raise SystemExit()
+        # If we're changing the sorts, call the function until the user inputs something valid. Otherwise default to gametype-only sort.
+        if 'o' in parameters:
+            dirorder = False
+            while dirorder == False:
+                dirorder = change_dir_order()
+        else:
+            dirorder = 'g'
+        # Restriction filtering setup
+        if 'l' in parameters:
+            print_log('For each sort, enter a comma-separated list of which attributes you\'d like to limit to. Leave blank to ignore that sort.')
+            rdfluxes = restrict_dirs('fluxes')
+            rdprofessions = rdprofessions = restrict_dirs('professions')
+            rdgametypes = rdgametypes = restrict_dirs('gametypes')
+            rdratings = rdratings = restrict_dirs('ratings')
+            rdirs = [rdfluxes, rdprofessions, rdgametypes, rdratings]
+        else:
+            rdirs = None
+        pagelist = setup_categories()
+        # Process the builds, redirect is defined only if the get_build function encounters an error
+        while pagelist:
+            redirect = get_build(pagelist.popleft(), dirorder, rdirs)
+            if redirect != None:
+                pagelist.appendleft(redirect)
     print_prompt("Script complete.")
