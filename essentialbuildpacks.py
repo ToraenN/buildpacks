@@ -6,10 +6,11 @@ import os
 import os.path
 import urllib.request, urllib.parse, urllib.error
 import zipfile
+from collections import deque
 
 def setup_builds():
     categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
-    pagelist = []
+    buildlist = deque()
     for cat in categories:
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat)
         print("Assembling build list for " + catname.replace('_',' ') + "...")
@@ -25,39 +26,27 @@ def setup_builds():
         if continuestr:
             categories += [catname + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
-            pagelist = category_page_list(page, pagelist)
+            buildlist = category_page_list(page, buildlist)
             print("Builds from " + catname.replace('_',' ') + " added to list!")
         else:
-            http_failure(cat, response.status, response.reason, response.getheaders())
-            print("Build listing for " + catname.replace('_',' ') + " failed.")
-    print(str(len(pagelist)) + ' builds found!')
-
-    for i in pagelist:
-        redirect = get_build(i)
-        if not redirect == None:
-            pagelist.insert(pagelist.index(i) + 1, redirect)
+            print("Curse's servers are (probably) down. Try again later.")
+            return
+    print(str(len(buildlist)) + ' builds found!')
+    return buildlist
 
 def get_build(i):
     print("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
-    try:
-        conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
-    except:
-        return build_error('Internet connection lost.','er',i)
+    conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
     response = conn.getresponse()
     page = str(response.read())
     conn.close()
     if response.status == 200:
         codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
         if len(codes) == 0:
-            resolution = build_error('No build template found on page for ' + i + '.', 'ers', i)
-            return resolution
+            return build_error('No build template found on page for ' + i + '.', i)
         for c in codes:
             if c == '':
-                resolution = build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', 'ecrs', i)
-                if resolution == 'c':
-                    continue
-                else:
-                    return resolution
+                return build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', i)
 
         gametypes = id_gametypes(page)
         ratings = id_ratings(page)
@@ -82,18 +71,14 @@ def get_build(i):
                 else:
                     write_build(file_name_sub(i, d) + rateinname + '.txt', codes[0])
         print(i + " complete.")
-    elif response.status == 301:
+    elif response.status == 301 or 302:
         headers = str(response.getheaders())
         newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
         newpagename = newpagestr[0].replace('gwpvx.gamepedia.com/','').replace("')",'').replace('_',' ')
-        print('301 redirection...')
+        print('redirection...')
         return newpagename
-    elif response.status == 504:
-        print('Gateway Time Out. Retrying...')
-        return i
     else:
-        resolution = build_error('HTTPConnection error encountered: ' + str(response.status) + ' - ' + str(response.reason), 'ers', i, response.getheaders())
-        return resolution
+        return build_error('HTTPConnection error encountered: ' + str(response.status) + ' - ' + str(response.reason), i)
 
 def write_build(filename, code):
     if not os.path.isdir('./Zipped Build Packs'):
@@ -171,40 +156,12 @@ def id_ratings(page):
         ratings = ['Nonrated']
     return ratings
 
-def http_failure(attempt, response, reason, headers):
-    print('HTTPConnection error encountered: ' + str(response) + ' - ' + str(reason))
-    if attempt == 'Start':
-        print("Curse's servers are (probably) down. Try again later.")
-        raise SystemExit()
-    answer = input('Do you wish to continue the script? ' + str(attempt) + ' will be skipped. (y/n) ')
-    while not re.search('^[ny]$',answer):
-        answer = input('Please enter "y" or "n".')
-        if answer == 'y':
-            print('Ok, continuing...')
-        elif answer == 'n':
-            print('Ok, exiting...')
-            raise SystemExit()
-        else:
-            print("Please enter 'y' or 'n'.")
-
-def build_error(error, options, build, headers = None):
+def build_error(error, build):
     print(error)
-    resprompt = 'Please choose one of the following options:\r\n'
-    if 'c' in options:
-        resprompt += 'c = continue the build (with errors)\r\n'
-    if 'e' in options:
-        resprompt += 'e = exit the script\r\n'
-    if 'r' in options:
-        resprompt += 'r = reattempt the build (you should fix the issue first)\r\n'
-    if 's' in options:
-        resprompt += 's = skip the build\r\n'
-    resprompt += 'Type the letter corresponding to your choice: '
-    resolution = input(resprompt)
-    while re.search('^[' + options +']$', resolution) == None:
+    resolution = input('Please choose one of the following options:\ne = exit the script\nr = reattempt the build (you should fix the issue first)\ns = skip the build\nType the letter corresponding to your choice: ')
+    while re.search('^[ers]$', resolution) == None:
         resolution = input('Please enter a valid option: ')
-    if resolution == 'c':
-        return resolution
-    elif resolution == 'e':
+    if resolution == 'e':
         raise SystemExit()
     elif resolution == 'r':
         return build
@@ -213,17 +170,21 @@ def build_error(error, options, build, headers = None):
 
 if __name__ == "__main__":
     global conn
-    conn = http.client.HTTPConnection('gwpvx.gamepedia.com')
+    conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     try:
         conn.request('GET', '/PvX_wiki')
     except:
-        print('Turn on your internet scrub.','yes')
+        print('Turn on your internet scrub.')
     else:
         r1 = conn.getresponse()
         conn.close()
         if r1.status == 200:
             print("Holy shit! Curse is actually working. Now let's start getting that build data.")
+            builds = setup_builds()
+            while builds:
+                redirect = get_build(builds.popleft())
+                if redirect != None:
+                    builds.appendleft(redirect)
         else:
-            http_failure('Start', r1.status, r1.response, r1.getheaders())
-        setup_builds()
+            print(str(r1.status) + "Curse's servers are (probably) down. Try again later.")
     input("Script complete.")
