@@ -180,7 +180,7 @@ def get_build(i, dirorder, rdirs):
         else:
             rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
         if 'Team' in i and len(codes) > 1:
-            dirlevels += [[(file_name_sub(i) + rateinname)]]
+            dirlevels.append([(file_name_sub(i) + rateinname)])
         directories = directory_tree(dirlevels)
         # If we're making a log file, inlcude the directory info
         if 'w' in parameters:
