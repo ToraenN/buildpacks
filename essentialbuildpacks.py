@@ -260,7 +260,7 @@ if __name__ == "__main__":
                 pack.add(currentbuild)
         while savedpacks:
             currentpack = savedpacks.popleft()
-            print('Saving pack ' currentpack.name + ' (' + str(len(currentpack.builds)) + ' files)...')
+            print('Saving pack ' + currentpack.name + ' (' + str(len(currentpack.builds)) + ' files)...')
             write_builds_zip(currentpack)
             print('Pack ' + currentpack.name + ' saved!')
     input("Script complete.")
