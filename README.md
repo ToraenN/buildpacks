@@ -13,7 +13,7 @@ Danny provided the original version of this script (which can be found in the hi
 Parameters modify this basic program flow as follows.
 
 # Parameters
-If none are entered, the script will select the 'All working PvP builds', 'All working PvE builds' and 'Affected by Flux' categories (all of the currently vetted builds) and process them as stated in the Program Flow section. The parameters that can be entered are:
+If none are entered, the script will select the 'All working PvP builds', 'All working PvE builds', 'Affected by Flux', 'Untested testing builds' and 'Trial Builds' categories (all of the currently vetted and vetting in progress builds) and process them as stated in the Program Flow section. The parameters that can be entered are:
 
 a : to not save builds with an empty primary profession (some build editor programs can read them but Guild Wars cannot).
 
@@ -39,7 +39,7 @@ y : forces the consolidated zip files to be made even if sort/category/'b' optio
 
 z : Creates zip archives instead of saving individual text files. Will create the three consolidated zip files if no sort or category parameters are entered.
 
-The essential version of the script does not ask for any parameters and just collects the tested builds. It also only saves zips, not the separate text files.
+The essential version of the script does not ask for any parameters and just collects the default categories. It also only saves zips, not the separate text files.
 
 # Notes
 The script only recognizes builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
