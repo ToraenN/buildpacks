@@ -480,7 +480,7 @@ if __name__ == "__main__":
                 pack.add(currentbuild)
         while savedpacks:
             currentpack = savedpacks.popleft()
-            print_log('Saving pack ' currentpack.name + ' (' + str(len(currentpack.builds)) + ' files)...', 'yes')
+            print_log('Saving pack ' + currentpack.name + ' (' + str(len(currentpack.builds)) + ' files)...', 'yes')
             if 't' in parameters or not 'z' in parameters:
                 write_builds_txt(currentpack)
             if 'z' in parameters:
