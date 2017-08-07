@@ -18,7 +18,7 @@ class BuildData:
         self.packs = set()
         for d in self.directories:
             try:
-                pack = re.search(r'^./PvX Build Packs/([\w ]*)[/$]', d).group(1)
+                pack = re.search(r"^./PvX Build Packs/([\w ']*)[/$]", d).group(1)
             except AttributeError:
                 pack = 'PvX Build Packs'
             self.packs.add(pack)
@@ -180,7 +180,7 @@ def get_build(i, dirorder, rdirs):
         else:
             rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
         if 'Team' in i and len(codes) > 1:
-            dirlevels.append([(file_name_sub(i) + rateinname)])
+            dirlevels += [[(file_name_sub(i) + rateinname)]]
         directories = directory_tree(dirlevels)
         # If we're making a log file, inlcude the directory info
         if 'w' in parameters:
@@ -307,9 +307,14 @@ def directory_tree(dirlevels):
     return directories
 
 def id_fluxes(page):
-    fluxes = re.findall('>(Affected by [^<>]*?) Flux<', page)
-    if len(fluxes) == 0:
+    rawfluxes = re.findall('>(Affected by [^<>]*?) Flux<', page)
+    if len(rawfluxes) == 0:
         fluxes = ['Unaffected by Flux']
+    # This else clause dedicated to Xinrae's Revenge *Shakes fist*
+    else:
+        fluxes = []
+        for rf in rawfluxes:
+            fluxes.append(rf.replace('\\', ''))
     return fluxes
 
 def id_profession(name):
@@ -319,15 +324,15 @@ def id_profession(name):
     return profession
 
 def id_gametypes(page):
-    # Finds the build-types div, and then extracts the tags. Two checks for: build-types div isn't found or if it has no tags in it.
+    # Finds the build-types div, and then extracts the tags. Returns early if div or tags not found.
     builddiv = re.search('<div class="build-types">.*?</div>', page, re.DOTALL)
     if not builddiv:
         return ['Uncategorized'], {'PvU'}
     rawtypes = re.findall('Pv[EP]<br />\w+', builddiv.group())
     if len(rawtypes) == 0:
         return ['Uncategorized'], {'PvU'}
-    # Build the gametypes list and pvx set based on the tags
-    gametypes = []
+    # Build the gametypes and pvx sets based on the tags
+    gametypes = set()
     pvx = set()
     for t in rawtypes:
         pvx.add(re.search('(Pv[EP])<br />', t).group(1))
@@ -337,9 +342,7 @@ def id_gametypes(page):
             cleanedtype = (re.sub('Pv[EP]<br />', '', t)).title()
         else:
             cleanedtype = re.sub('Pv[EP]<br />', '', t)
-        # Apparently I cannot trust that everyone will avoid putting in duplicate tags
-        if not cleanedtype in gametypes:
-            gametypes += [cleanedtype]
+        gametypes.add(cleanedtype)
     return gametypes, pvx
 
 def id_ratings(page): 
