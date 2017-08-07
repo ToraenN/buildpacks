@@ -9,6 +9,43 @@ import urllib.request, urllib.parse, urllib.error
 import zipfile
 from collections import deque
 
+class BuildData:
+    '''Holds the data necessary for saving a build.'''
+    def __init__(self, filename, code, directories, pvx):
+        self.filename = filename
+        self.code = code
+        self.directories = set(directories)
+        self.packs = set()
+        for d in self.directories:
+            try:
+                pack = re.search(r"^./PvX Build Packs/([\w ']*)[/$]", d).group(1)
+            except AttributeError:
+                pack = 'PvX Build Packs'
+            self.packs.add(pack)
+        if re.search(r'[bclmo]', parameters) == None or 'y' in parameters:
+            pvx.add('All')
+            if 'PvE' in pvx:
+                self.packs.add('PvE Build Packs')
+            if 'PvP' in pvx:
+                self.packs.add('PvP Build Packs')
+            self.packs.add('All Build Packs')
+            for d in set(self.directories):
+                for area in pvx:
+                    conpackdir = d.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')
+                    self.directories.add(conpackdir)
+                    if not os.path.isdir(conpackdir):
+                        os.makedirs(conpackdir)
+
+class PackData:
+    '''Object for handling a pack.'''
+    def __init__(self, name):
+        self.name = name
+        self.builds = set()
+
+    def add(self, build):
+        if self.name in build.packs:
+            self.builds.add(build)
+
 def setup_categories():
     # Check for category selection modes. If none of these, just grab the tested builds.
     categories = []
@@ -39,7 +76,6 @@ def setup_categories():
     pagelist = deque()
     while categories:
         cat = categories.pop()
-        # This done so you don't have a massive page id displayed for category continuations.
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat).replace('_',' ')
         print_log("Assembling build list for " + catname + "...")
         try:
@@ -90,10 +126,10 @@ def get_build(i, dirorder, rdirs):
         # Grab all the other build info
         fluxes = id_fluxes(page)
         profession = id_profession(i)
-        gametypes = id_gametypes(page)
+        gametypes, pvx = id_gametypes(page)
         ratings = id_ratings(page)
         if 'w' in parameters:
-            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes))
+            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nPvX found: ' + str(pvx) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes))
         # Check for restrictions and skip build if a restriction has no matches
         if rdirs != None:
             rfluxes = []
@@ -144,31 +180,36 @@ def get_build(i, dirorder, rdirs):
         else:
             rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
         if 'Team' in i and len(codes) > 1:
-            dirlevels += [[(file_name_sub(i,'') + rateinname)]]
+            dirlevels += [[(file_name_sub(i) + rateinname)]]
         directories = directory_tree(dirlevels)
         # If we're making a log file, inlcude the directory info
         if 'w' in parameters:
             log_write('Directories used: ' + str(directories))
         # Check to see if the build is a team build
+        builddatalist = []
         if 'Team' in i and len(codes) > 1:
             num = 0
             for j in codes:
                 num += 1
-                for d in directories:
-                    write_build(file_name_sub(i, d) + ' - ' + str(num) + '.txt', j)
+                builddatalist += [BuildData(file_name_sub(i) + ' - ' + str(num) + '.txt', j, directories, pvx)]
         else:
-            for d in directories:
-                # Check for a non-team build with both player and hero versions, and sort them appropriately
-                if len(codes) > 1 and 'Hero' in gametypes and 'General' in gametypes:
-                    if 'Hero' in d:
-                        write_build(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt', codes[1])
-                    # If we're not sorting by gametype, save both versions
-                    elif not 'g' in dirorder:
-                        write_build(file_name_sub(i, d) + ' - Hero' + rateinname + '.txt', codes[1])
-                        write_build(file_name_sub(i, d) + rateinname + '.txt', codes[0])
+            # Check for a non-team build with both player and hero versions, and sort them appropriately
+            if len(codes) > 1 and 'Hero' in gametypes and 'General' in gametypes:
+                if not 'g' in dirorder:
+                    builddatalist += [BuildData(file_name_sub(i) + ' - Hero' + rateinname + '.txt', codes[1], directories, pvx), BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], directories, pvx)]
                 else:
-                    write_build(file_name_sub(i, d) + rateinname + '.txt', codes[0])
-        print_log(i + " complete.")
+                    herodirs = []
+                    nonherodirs = []
+                    for d in directories:
+                        if 'Hero' in d:
+                            herodirs += [d]
+                        else:
+                            nonherodirs += [d]
+                    builddatalist += [BuildData(file_name_sub(i) + ' - Hero' + rateinname + '.txt', codes[1], herodirs, pvx), BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], nonherodirs, pvx)]
+            else:
+                builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], directories, pvx)]
+        print_log(i + " retrieved.")
+        return builddatalist
     elif response.status == 301 or 302:
         # Follow the redirect
         headers = str(response.getheaders())
@@ -179,42 +220,39 @@ def get_build(i, dirorder, rdirs):
     else:
         build_error('HTTPConnection error encountered: ' + str(response.status) + ' - ' + str(response.reason), i, response.getheaders())
 
-def write_build(filename, code):
-    # Check if we're writing text files
-    if 't' in parameters or not 'z' in parameters:
-        with open(filename, 'w') as outfile:
-            outfile.write(code)
-    # Check if we're writing zip files
-    if 'z' in parameters:
-        if not os.path.isdir('./Zipped Build Packs'):
-            os.makedirs('./Zipped Build Packs')
-        try:
-            TopDir = (re.search(r'PvX Build Packs/([\w\s]*?)/', filename)).group(1)
-        # If we aren't doing any sorts, make sure we have a top-level directory to put everything in
-        except AttributeError:
-            TopDir = 'PvX Build Packs'
-        archivename = filename.replace('./PvX Build Packs/','')
-        zip_file_write(TopDir, archivename, code)
-        # If there are any non-default sorts or limited categories in use, don't continue to the consolidated packs. Overridden by 'y'.
-        if re.search(r'[bclmo]', parameters) and not 'y' in parameters:
-            return
-        zip_file_write('All Build Packs', archivename, code)
-        if TopDir in ['HA','GvG','RA','AB','FA','JQ','PvP team','TA','CM','HB']:
-            zip_file_write('PvP Build Packs', archivename, code)
-        if TopDir in ['General','Hero','Farming','Running','SC','PvE team']:
-            zip_file_write('PvE Build Packs', archivename, code)
+def write_builds_txt(pack):
+    for build in pack.builds:
+        dirs = []
+        for ad in build.directories:
+            if pack.name in ad:
+                dirs.append(ad)
+        for d in dirs:
+            fullpath = d + build.filename
+            with open(fullpath, 'w') as outfile:
+                outfile.write(build.code)
+        # print_log(build.filename.replace('.txt','') + ' saved!')
 
-def zip_file_write(packname, archivename, code):
-    with zipfile.ZipFile('./Zipped Build Packs/' + packname + '.zip', 'a') as ZipPack:
-        try:
-            ZipPack.getinfo(archivename)
-        except KeyError:
-            ZipPack.writestr(archivename, code)
-        else:
-            print_log(archivename + " already present in " + packname + ".zip!")
+def write_builds_zip(pack):
+    if not os.path.isdir('./Zipped Build Packs'):
+        os.makedirs('./Zipped Build Packs')
+    with zipfile.ZipFile('./Zipped Build Packs/' + pack.name + '.zip', 'a') as ZipPack:
+        for build in pack.builds:
+            dirs = []
+            for ad in build.directories:
+                if pack.name in ad:
+                    dirs.append(ad.replace('./PvX Build Packs/',''))
+            for d in dirs:
+                archivename = d + build.filename
+                try:
+                    ZipPack.getinfo(archivename)
+                except KeyError:
+                    ZipPack.writestr(archivename, build.code)
+                else:
+                    print_log(archivename + " already present in " + pack.name + ".zip!")
+            # print_log(build.filename.replace('.txt','') + ' saved to ' + pack.name + '.zip!')
 
-def file_name_sub(build, directory):
-    filename = directory + (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+def file_name_sub(build):
+    filename = (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def change_dir_order():
@@ -269,9 +307,14 @@ def directory_tree(dirlevels):
     return directories
 
 def id_fluxes(page):
-    fluxes = re.findall('>(Affected by [^<>]*?) Flux<', page)
-    if len(fluxes) == 0:
+    rawfluxes = re.findall('>(Affected by [^<>]*?) Flux<', page)
+    if len(rawfluxes) == 0:
         fluxes = ['Unaffected by Flux']
+    # This else clause dedicated to Xinrae's Revenge *Shakes fist*
+    else:
+        fluxes = []
+        for rf in rawfluxes:
+            fluxes.append(rf.replace('\\', ''))
     return fluxes
 
 def id_profession(name):
@@ -281,26 +324,26 @@ def id_profession(name):
     return profession
 
 def id_gametypes(page):
-    # Finds the build-types div, and then extracts the tags. Two checks for: build-types div isn't found or if it has no tags in it.
+    # Finds the build-types div, and then extracts the tags. Returns early if div or tags not found.
     builddiv = re.search('<div class="build-types">.*?</div>', page, re.DOTALL)
     if not builddiv:
-        return ['Uncategorized']
+        return ['Uncategorized'], {'PvU'}
     rawtypes = re.findall('Pv[EP]<br />\w+', builddiv.group())
     if len(rawtypes) == 0:
-        return ['Uncategorized']
-    # Build the gametypes list based on the tags
-    gametypes = []
+        return ['Uncategorized'], {'PvU'}
+    # Build the gametypes and pvx sets based on the tags
+    gametypes = set()
+    pvx = set()
     for t in rawtypes:
+        pvx.add(re.search('(Pv[EP])<br />', t).group(1))
         if 'team' in t:
             cleanedtype = re.sub('<br />', ' ', t)
         elif len(t) > 12:
             cleanedtype = (re.sub('Pv[EP]<br />', '', t)).title()
         else:
             cleanedtype = re.sub('Pv[EP]<br />', '', t)
-        # Apparently I cannot trust that everyone will avoid putting in duplicate tags
-        if not cleanedtype in gametypes:
-            gametypes += [cleanedtype]
-    return gametypes
+        gametypes.add(cleanedtype)
+    return gametypes, pvx
 
 def id_ratings(page): 
     ratings = []
@@ -420,9 +463,30 @@ if __name__ == "__main__":
         else:
             rdirs = None
         pagelist = setup_categories()
-        # Process the builds, redirect is defined only if the get_build function encounters an error
+        # Process the builds
+        buildqueue = deque()
+        packnames = set()
+        savedpacks = deque()
         while pagelist:
-            redirect = get_build(pagelist.popleft(), dirorder, rdirs)
-            if redirect != None:
-                pagelist.appendleft(redirect)
+            result = get_build(pagelist.popleft(), dirorder, rdirs)
+            if isinstance(result, list) == True:
+                buildqueue += result
+                for build in result:
+                    packnames.update(build.packs)
+            elif isinstance(result, str) == True:
+                pagelist.appendleft(result)
+        while packnames:
+            savedpacks.append(PackData(packnames.pop()))
+        while buildqueue:
+            currentbuild = buildqueue.popleft()
+            for pack in savedpacks:
+                pack.add(currentbuild)
+        while savedpacks:
+            currentpack = savedpacks.popleft()
+            print_log('Saving pack ' + currentpack.name + ' (' + str(len(currentpack.builds)) + ' files)...', 'yes')
+            if 't' in parameters or not 'z' in parameters:
+                write_builds_txt(currentpack)
+            if 'z' in parameters:
+                write_builds_zip(currentpack)
+            print_log('Pack ' + currentpack.name + ' saved!', 'yes')
     print_prompt("Script complete.")
