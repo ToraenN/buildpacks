@@ -29,12 +29,6 @@ class BuildData:
             if 'PvP' in pvx:
                 self.packs.add('PvP Build Packs')
             self.packs.add('All Build Packs')
-            for d in set(self.directories):
-                for area in pvx:
-                    conpackdir = d.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')
-                    self.directories.add(conpackdir)
-                    if not os.path.isdir(conpackdir):
-                        os.makedirs(conpackdir)
 
 class PackData:
     '''Object for handling a pack.'''
@@ -181,7 +175,7 @@ def get_build(i, dirorder, rdirs):
             rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
         if 'Team' in i and len(codes) > 1:
             dirlevels += [[(file_name_sub(i) + rateinname)]]
-        directories = directory_tree(dirlevels)
+        directories = directory_tree(dirlevels, pvx)
         # If we're making a log file, inlcude the directory info
         if 'w' in parameters:
             log_write('Directories used: ' + str(directories))
@@ -224,13 +218,13 @@ def write_builds_txt(pack):
     for build in pack.builds:
         dirs = []
         for ad in build.directories:
-            if pack.name in ad:
+            if pack.name in re.search(r'./PvX Build Packs/(.*?)/', ad)[1]:
                 dirs.append(ad)
         for d in dirs:
             fullpath = d + build.filename
             with open(fullpath, 'w') as outfile:
                 outfile.write(build.code)
-        # print_log(build.filename.replace('.txt','') + ' saved!')
+        print_log(build.filename.replace('.txt','') + ' saved!')
 
 def write_builds_zip(pack):
     if not os.path.isdir('./Zipped Build Packs'):
@@ -239,7 +233,7 @@ def write_builds_zip(pack):
         for build in pack.builds:
             dirs = []
             for ad in build.directories:
-                if pack.name in ad:
+                if pack.name in re.search(r'./PvX Build Packs/(.*?)/', ad)[1]:
                     dirs.append(ad.replace('./PvX Build Packs/',''))
             for d in dirs:
                 archivename = d + build.filename
@@ -249,7 +243,7 @@ def write_builds_zip(pack):
                     ZipPack.writestr(archivename, build.code)
                 else:
                     print_log(archivename + " already present in " + pack.name + ".zip!")
-            # print_log(build.filename.replace('.txt','') + ' saved to ' + pack.name + '.zip!')
+            print_log(build.filename.replace('.txt','') + ' saved to ' + pack.name + '.zip!')
 
 def file_name_sub(build):
     filename = (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
@@ -285,7 +279,7 @@ def category_selection(catlist):
             categories += [a]
     return categories
 
-def directory_tree(dirlevels):
+def directory_tree(dirlevels, pvx):
     while len(dirlevels) < 5:
         dirlevels += [['']]
     directories = []
@@ -299,6 +293,11 @@ def directory_tree(dirlevels):
          while '//' in addeddir:
              addeddir = addeddir.replace('//','/')
          directories += [addeddir]
+         # Conditionally add the directories for the consolidated packs
+         if re.search(r'[bclmo]', parameters) == None or 'y' in parameters:
+             pvx.add('All')
+             for area in pvx:
+                 directories += [addeddir.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')]
     # Only create directories if saving text files
     if 't' in parameters or not 'z' in parameters:
         for folder in directories:
