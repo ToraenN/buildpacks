@@ -29,12 +29,6 @@ class BuildData:
             if 'PvP' in pvx:
                 self.packs.add('PvP Build Packs')
             self.packs.add('All Build Packs')
-            for d in set(self.directories):
-                for area in pvx:
-                    conpackdir = d.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')
-                    self.directories.add(conpackdir)
-                    if not os.path.isdir(conpackdir):
-                        os.makedirs(conpackdir)
 
 class PackData:
     '''Object for handling a pack.'''
@@ -47,7 +41,7 @@ class PackData:
             self.builds.add(build)
 
 def setup_categories():
-    # Check for category selection modes. If none of these, just grab the tested builds.
+    # Check for category selection modes. If none of these, just grab all vetting and vetted builds.
     categories = []
     if 'm' in parameters:
         manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
@@ -68,9 +62,9 @@ def setup_categories():
         if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n) '):
             categories += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds','WELL'])
     if len(categories) == 0:
-        # Default to all currently vetted builds, including the auto-archiving Flux builds.
+        # Default to all currently vetted and vetting builds, including the auto-archiving Flux builds.
         print_log("Using default categories.", "yes")
-        categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
+        categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Untested_testing_builds', 'Trial_Builds', 'Affected_by_Flux']
 
     # Fetch the builds from the categories.
     pagelist = deque()
@@ -181,7 +175,7 @@ def get_build(i, dirorder, rdirs):
             rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
         if 'Team' in i and len(codes) > 1:
             dirlevels += [[(file_name_sub(i) + rateinname)]]
-        directories = directory_tree(dirlevels)
+        directories = directory_tree(dirlevels, pvx)
         # If we're making a log file, inlcude the directory info
         if 'w' in parameters:
             log_write('Directories used: ' + str(directories))
@@ -224,13 +218,13 @@ def write_builds_txt(pack):
     for build in pack.builds:
         dirs = []
         for ad in build.directories:
-            if pack.name in ad:
+            if pack.name in re.search(r'./PvX Build Packs/(.*?)/', ad)[1]:
                 dirs.append(ad)
         for d in dirs:
             fullpath = d + build.filename
             with open(fullpath, 'w') as outfile:
                 outfile.write(build.code)
-        # print_log(build.filename.replace('.txt','') + ' saved!')
+        print_log(build.filename.replace('.txt','') + ' saved!')
 
 def write_builds_zip(pack):
     if not os.path.isdir('./Zipped Build Packs'):
@@ -239,7 +233,7 @@ def write_builds_zip(pack):
         for build in pack.builds:
             dirs = []
             for ad in build.directories:
-                if pack.name in ad:
+                if pack.name in re.search(r'./PvX Build Packs/(.*?)/', ad)[1]:
                     dirs.append(ad.replace('./PvX Build Packs/',''))
             for d in dirs:
                 archivename = d + build.filename
@@ -249,7 +243,7 @@ def write_builds_zip(pack):
                     ZipPack.writestr(archivename, build.code)
                 else:
                     print_log(archivename + " already present in " + pack.name + ".zip!")
-            # print_log(build.filename.replace('.txt','') + ' saved to ' + pack.name + '.zip!')
+            print_log(build.filename.replace('.txt','') + ' saved to ' + pack.name + '.zip!')
 
 def file_name_sub(build):
     filename = (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
@@ -285,7 +279,7 @@ def category_selection(catlist):
             categories += [a]
     return categories
 
-def directory_tree(dirlevels):
+def directory_tree(dirlevels, pvx):
     while len(dirlevels) < 5:
         dirlevels += [['']]
     directories = []
@@ -299,6 +293,11 @@ def directory_tree(dirlevels):
          while '//' in addeddir:
              addeddir = addeddir.replace('//','/')
          directories += [addeddir]
+         # Conditionally add the directories for the consolidated packs
+         if re.search(r'[bclmo]', parameters) == None or 'y' in parameters:
+             pvx.add('All')
+             for area in pvx:
+                 directories += [addeddir.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')]
     # Only create directories if saving text files
     if 't' in parameters or not 'z' in parameters:
         for folder in directories:
@@ -383,16 +382,10 @@ def print_log(string, alwaysdisplay = 'no'):
         log_write(str(string))
 
 def log_write(string):
+    actiontime = time.gmtime()
+    timestamp = str(actiontime[3]).zfill(2) + ':' + str(actiontime[4]).zfill(2) + ':' + str(actiontime[5]).zfill(2)
     with open(logname, 'a') as textlog:
-        timestamp = format_time()
-        textlog.write(timestamp[1] + ': ' + string.replace('\r\n', '\r\n' + ' ' * 10) + '\r\n')
-
-def format_time():
-    datetime = time.gmtime()
-    curdate = str(datetime[0]) + '.' + str(datetime[1]).zfill(2) + '.' + str(datetime[2]).zfill(2)
-    curtime = str(datetime[3]).zfill(2) + ':' + str(datetime[4]).zfill(2) + ':' + str(datetime[5]).zfill(2)
-    filesuffix = str(datetime[1]).zfill(2) + str(datetime[2]).zfill(2) + str(datetime[3]).zfill(2) + str(datetime[4]).zfill(2) + str(datetime[5]).zfill(2)
-    return (curdate, curtime, filesuffix)
+        textlog.write(timestamp + ': ' + string.replace('\r\n', '\r\n' + ' ' * 10) + '\r\n')
 
 def build_error(error, build, headers = None):
     print_log(error, 'yes')
@@ -427,9 +420,9 @@ if __name__ == "__main__":
         parameters = input('Parameters: ')
     if 'w' in parameters:
         global logname
-        datetime = format_time()
-        logname = './buildpacklog ' + datetime[2] + '.txt'
-        log_write(datetime[0])
+        datetime = time.gmtime()
+        logname = './buildpacklog ' + str(datetime[1]).zfill(2) + str(datetime[2]).zfill(2) + str(datetime[3]).zfill(2) + str(datetime[4]).zfill(2) + str(datetime[5]).zfill(2) + '.txt'
+        log_write(str(datetime[0]) + '.' + str(datetime[1]).zfill(2) + '.' + str(datetime[2]).zfill(2))
         log_write('Parameters: ' + parameters)
     # Setup the connection and test the servers
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
