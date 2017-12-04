@@ -382,16 +382,10 @@ def print_log(string, alwaysdisplay = 'no'):
         log_write(str(string))
 
 def log_write(string):
+    actiontime = time.gmtime()
+    timestamp = str(actiontime[3]).zfill(2) + ':' + str(actiontime[4]).zfill(2) + ':' + str(actiontime[5]).zfill(2)
     with open(logname, 'a') as textlog:
-        timestamp = format_time()
-        textlog.write(timestamp[1] + ': ' + string.replace('\r\n', '\r\n' + ' ' * 10) + '\r\n')
-
-def format_time():
-    datetime = time.gmtime()
-    curdate = str(datetime[0]) + '.' + str(datetime[1]).zfill(2) + '.' + str(datetime[2]).zfill(2)
-    curtime = str(datetime[3]).zfill(2) + ':' + str(datetime[4]).zfill(2) + ':' + str(datetime[5]).zfill(2)
-    filesuffix = str(datetime[1]).zfill(2) + str(datetime[2]).zfill(2) + str(datetime[3]).zfill(2) + str(datetime[4]).zfill(2) + str(datetime[5]).zfill(2)
-    return (curdate, curtime, filesuffix)
+        textlog.write(timestamp + ': ' + string.replace('\r\n', '\r\n' + ' ' * 10) + '\r\n')
 
 def build_error(error, build, headers = None):
     print_log(error, 'yes')
@@ -426,9 +420,9 @@ if __name__ == "__main__":
         parameters = input('Parameters: ')
     if 'w' in parameters:
         global logname
-        datetime = format_time()
-        logname = './buildpacklog ' + datetime[2] + '.txt'
-        log_write(datetime[0])
+        datetime = time.gmtime()
+        logname = './buildpacklog ' + str(datetime[1]).zfill(2) + str(datetime[2]).zfill(2) + str(datetime[3]).zfill(2) + str(datetime[4]).zfill(2) + str(datetime[5]).zfill(2) + '.txt'
+        log_write(str(datetime[0]) + '.' + str(datetime[1]).zfill(2) + '.' + str(datetime[2]).zfill(2))
         log_write('Parameters: ' + parameters)
     # Setup the connection and test the servers
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
