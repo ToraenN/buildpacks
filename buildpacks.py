@@ -41,7 +41,7 @@ class PackData:
             self.builds.add(build)
 
 def setup_categories():
-    # Check for category selection modes. If none of these, just grab the tested builds.
+    # Check for category selection modes. If none of these, just grab all vetting and vetted builds.
     categories = []
     if 'm' in parameters:
         manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
@@ -62,9 +62,9 @@ def setup_categories():
         if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n) '):
             categories += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds','WELL'])
     if len(categories) == 0:
-        # Default to all currently vetted builds, including the auto-archiving Flux builds.
+        # Default to all currently vetted and vetting builds, including the auto-archiving Flux builds.
         print_log("Using default categories.", "yes")
-        categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux']
+        categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Untested_testing_builds', 'Trial_Builds', 'Affected_by_Flux']
 
     # Fetch the builds from the categories.
     pagelist = deque()
