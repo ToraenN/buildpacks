@@ -27,10 +27,6 @@ class BuildData:
         if 'PvP' in pvx:
             self.packs.add('PvP Build Packs')
         self.packs.add('All Build Packs')
-        for d in set(self.directories):
-            for area in pvx:
-                conpackdir = d.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')
-                self.directories.add(conpackdir)
 
 class PackData:
     '''Object for handling a pack.'''
@@ -99,7 +95,7 @@ def get_build(i):
         rateinname = ' - ' + str(ratings).replace('[','').replace(']','').replace("'",'').replace(',','-').replace(' ','')
         if 'Team' in i and len(codes) > 1:
             dirlevels.append([(file_name_sub(i) + rateinname)])
-        directories = directory_tree(dirlevels)
+        directories = directory_tree(dirlevels, pvx)
         # Check to see if the build is a team build
         builddatalist = []
         if 'Team' in i and len(codes) > 1:
@@ -139,7 +135,7 @@ def write_builds_zip(pack):
         for build in pack.builds:
             dirs = []
             for ad in build.directories:
-                if pack.name in ad:
+                if pack.name in re.search(r'./PvX Build Packs/(.*?)/', ad)[1]:
                     dirs.append(ad.replace('./PvX Build Packs/',''))
             for d in dirs:
                 archivename = d + build.filename
@@ -154,7 +150,7 @@ def file_name_sub(build):
     filename = (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
-def directory_tree(dirlevels):
+def directory_tree(dirlevels, pvx):
     while len(dirlevels) < 2:
         dirlevels += [['']]
     directories = []
@@ -165,6 +161,9 @@ def directory_tree(dirlevels):
             while '//' in addeddir:
                 addeddir = addeddir.replace('//','/')
             directories += [addeddir]
+            pvx.add('All')
+            for area in pvx:
+                directories += [addeddir.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')]
     return directories
 
 def id_gametypes(page):
