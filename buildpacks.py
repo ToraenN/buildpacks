@@ -449,9 +449,9 @@ if __name__ == "__main__":
         if 'l' in parameters:
             print_log('For each sort, enter a comma-separated list of which attributes you\'d like to limit to. Leave blank to ignore that sort.')
             rdfluxes = restrict_dirs('fluxes')
-            rdprofessions = rdprofessions = restrict_dirs('professions')
-            rdgametypes = rdgametypes = restrict_dirs('gametypes')
-            rdratings = rdratings = restrict_dirs('ratings')
+            rdprofessions = restrict_dirs('professions')
+            rdgametypes = restrict_dirs('gametypes')
+            rdratings = restrict_dirs('ratings')
             rdirs = [rdfluxes, rdprofessions, rdgametypes, rdratings]
         else:
             rdirs = [None, None, None, None]
