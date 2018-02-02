@@ -98,6 +98,11 @@ def setup_categories():
     return pagelist
 
 def get_build(i, dirorder, rdirs):
+    profession = id_profession(i)
+    if rdirs[1] != None:
+        if not profession[0] in rdirs[1]:
+            print_log(i + ' skipped. Profession doesn\'t match restriction.')
+            return
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
     if 'Any/' in i and 'a' in parameters:
         print_log(i + " skipped (empty primary profession).")
@@ -119,44 +124,39 @@ def get_build(i, dirorder, rdirs):
                 return build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', i)
         # Grab all the other build info
         fluxes = id_fluxes(page)
-        profession = id_profession(i)
         gametypes, pvx = id_gametypes(page)
         ratings = id_ratings(page)
         if 'w' in parameters:
             log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nPvX found: ' + str(pvx) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes))
         # Check for restrictions and skip build if a restriction has no matches
-        if rdirs != None:
-            rfluxes = []
-            rgametypes = []
-            rratings = []
-            if rdirs[0] != None:
-                for f in fluxes:
-                    if f in rdirs[0]:
-                        rfluxes += [f]
-                if len(rfluxes) == 0:
-                    print_log('Fluxes don\'t match restriction. Skipping.')
-                    return
-                fluxes = rfluxes
-            if rdirs[1] != None:
-                if not profession[0] in rdirs[1]:
-                    print_log('Profession doesn\'t match restriction. Skipping.')
-                    return
-            if rdirs[2] != None:
-                for g in gametypes:
-                    if g in rdirs[2]:
-                        rgametypes += [g]
-                if len(rgametypes) == 0:
-                    print_log('Gametypes don\'t match restriction. Skipping.')
-                    return
-                gametypes = rgametypes
-            if rdirs[3] != None:
-                for r in ratings:
-                    if r in rdirs[3]:
-                        rratings += [r]
-                if len(rratings) == 0:
-                    print_log('Ratings don\'t match restriction. Skipping.')
-                    return
-                ratings = rratings
+        rfluxes = []
+        rgametypes = []
+        rratings = []
+        if rdirs[0] != None:
+            for f in fluxes:
+                if f in rdirs[0]:
+                    rfluxes += [f]
+            if len(rfluxes) == 0:
+                print_log('Fluxes don\'t match restriction. Skipping.')
+                return
+            fluxes = rfluxes
+        # Profession check (rdirs[1]) is done earlier because we can skip unnecessary page loads that way.
+        if rdirs[2] != None:
+            for g in gametypes:
+                if g in rdirs[2]:
+                    rgametypes += [g]
+            if len(rgametypes) == 0:
+                print_log('Gametypes don\'t match restriction. Skipping.')
+                return
+            gametypes = rgametypes
+        if rdirs[3] != None:
+            for r in ratings:
+                if r in rdirs[3]:
+                    rratings += [r]
+            if len(rratings) == 0:
+                print_log('Ratings don\'t match restriction. Skipping.')
+                return
+            ratings = rratings
         # Create the directories
         dirlevels = []
         for o in dirorder:
@@ -449,12 +449,12 @@ if __name__ == "__main__":
         if 'l' in parameters:
             print_log('For each sort, enter a comma-separated list of which attributes you\'d like to limit to. Leave blank to ignore that sort.')
             rdfluxes = restrict_dirs('fluxes')
-            rdprofessions = rdprofessions = restrict_dirs('professions')
-            rdgametypes = rdgametypes = restrict_dirs('gametypes')
-            rdratings = rdratings = restrict_dirs('ratings')
+            rdprofessions = restrict_dirs('professions')
+            rdgametypes = restrict_dirs('gametypes')
+            rdratings = restrict_dirs('ratings')
             rdirs = [rdfluxes, rdprofessions, rdgametypes, rdratings]
         else:
-            rdirs = None
+            rdirs = [None, None, None, None]
         pagelist = setup_categories()
         # Process the builds
         buildqueue = deque()
