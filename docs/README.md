@@ -1,11 +1,10 @@
-# buildpacks.py
-The build pack script for PvXwiki.
+These are the build pack scripts for PvXwiki.
 
-This is a python 3.6.1 script for collecting all of the build template codes for given categories on the wiki.
+They are python 3.6.1 scripts for collecting all of the build template codes for given categories on the wiki.
 Danny provided the original version of this script (which can be found in the history on the script's PvXwiki page).
 
 # Program Flow
-1. At start the script asks for parameters from the user and checks if the wiki can be reached. 
+1. At start the full version of the script asks for parameters from the user and checks if the wiki can be reached. 
 2. If successful, then the script builds the list of builds to compile by visiting each category (builds that show up in multiple categories are only added once).
 3. It visits each build page in that list. It retrieves from each page: all template codes, the rating, the flux categories and the gametypes. 
 4. Each build is then written to all relevant directories in the 'PvX Build Packs' and/or the 'Zipped Build Packs' folder. 
@@ -42,8 +41,8 @@ z : Creates zip archives instead of saving individual text files. Will create th
 The essential version of the script does not ask for any parameters and just collects the default categories. It also only saves zips, not the separate text files.
 
 # Notes
-The script only recognizes builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
+The scripts only recognize builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
 
-Team builds are saved in their own subfolders and each template is named: Team - Build Name - #.txt. The script does not pull the builds' names or profession prefixes from the page to name the file with.
+Team builds are saved in their own subfolders and each template is named: Team - Build Name - #.txt. The scripts do not pull the builds' names or profession prefixes from the page to name the file with.
 
 Non-team builds that have separate player and hero template codes will appropriately be sorted to the 'general' (player build) and 'hero' (hero build) folders.
