@@ -1,6 +1,6 @@
 These are the build pack scripts for PvXwiki.
 
-They are python 3.6.1 scripts for collecting all of the build template codes for given categories on the wiki.
+They are python 3.6 scripts for collecting all of the build template codes for given categories on the wiki.
 Danny provided the original version of this script (which can be found in the history on the script's PvXwiki page).
 
 # Program Flow
