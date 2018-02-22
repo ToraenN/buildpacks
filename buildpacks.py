@@ -125,7 +125,7 @@ def get_build(i, dirorder, rdirs):
         # Grab all the other build info
         fluxes = id_fluxes(page)
         gametypes, pvx = id_gametypes(page)
-        if pvx = {'PvU'}:
+        if pvx == {'PvU'}:
             return build_error('Warning: No gametypes found on page for ' + i + '.', i)
         ratings = id_ratings(page)
         if 'w' in parameters:
