@@ -89,7 +89,7 @@ def get_build(i):
                 return build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', i)
         # Grab all the other build info
         gametypes, pvx = id_gametypes(page)
-        if pvx = {'PvU'}:
+        if pvx == {'PvU'}:
             return build_error('Warning: No gametypes found on page for ' + i + '.', i)
         ratings = id_ratings(page)
         # Create the directories
