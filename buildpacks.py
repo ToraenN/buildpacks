@@ -117,7 +117,7 @@ def get_build(i, dirorder, rdirs):
         codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
         # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
-            return build_error('No build template found on page for ' + i + '.', i)
+            return build_error('Warning: No build template found on page for ' + i + '.', i)
         # Template discrepancies (missing profession, impossible atts, duplicated skills, etc.) cause this error
         for c in codes:
             if c == '':
@@ -125,6 +125,8 @@ def get_build(i, dirorder, rdirs):
         # Grab all the other build info
         fluxes = id_fluxes(page)
         gametypes, pvx = id_gametypes(page)
+        if pvx == {'PvU'}:
+            return build_error('Warning: No gametypes found on page for ' + i + '.', i)
         ratings = id_ratings(page)
         if 'w' in parameters:
             log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nPvX found: ' + str(pvx) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes))
@@ -224,7 +226,6 @@ def write_builds_txt(pack):
             fullpath = d + build.filename
             with open(fullpath, 'w') as outfile:
                 outfile.write(build.code)
-        print_log(build.filename.replace('.txt','') + ' saved!')
 
 def write_builds_zip(pack):
     if not os.path.isdir('./Zipped Build Packs'):
@@ -243,7 +244,6 @@ def write_builds_zip(pack):
                     ZipPack.writestr(archivename, build.code)
                 else:
                     print_log(archivename + " already present in " + pack.name + ".zip!")
-            print_log(build.filename.replace('.txt','') + ' saved to ' + pack.name + '.zip!')
 
 def file_name_sub(build):
     filename = (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
@@ -309,7 +309,6 @@ def id_fluxes(page):
     rawfluxes = re.findall('>(Affected by [^<>]*?) Flux<', page)
     if len(rawfluxes) == 0:
         fluxes = ['Unaffected by Flux']
-    # This else clause dedicated to Xinrae's Revenge *Shakes fist*
     else:
         fluxes = []
         for rf in rawfluxes:
@@ -476,7 +475,7 @@ if __name__ == "__main__":
                 pack.add(currentbuild)
         while savedpacks:
             currentpack = savedpacks.popleft()
-            print_log('Saving pack ' + currentpack.name + ' (' + str(len(currentpack.builds)) + ' files)...', 'yes')
+            print_log('Saving pack ' + currentpack.name + ' (' + str(len(currentpack.builds)) + ' builds)...', 'yes')
             if 't' in parameters or not 'z' in parameters:
                 write_builds_txt(currentpack)
             if 'z' in parameters:

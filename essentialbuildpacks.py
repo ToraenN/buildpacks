@@ -82,13 +82,15 @@ def get_build(i):
         codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
         # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
-            return build_error('No build template found on page for ' + i + '.', i)
+            return build_error('Warning: No build template found on page for ' + i + '.', i)
         # Template discrepancies (missing profession, impossible atts, duplicated skills, etc.) cause this error
         for c in codes:
             if c == '':
                 return build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', i)
         # Grab all the other build info
         gametypes, pvx = id_gametypes(page)
+        if pvx == {'PvU'}:
+            return build_error('Warning: No gametypes found on page for ' + i + '.', i)
         ratings = id_ratings(page)
         # Create the directories
         dirlevels = [gametypes]
