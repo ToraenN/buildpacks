@@ -26,7 +26,7 @@ l : limits builds saved based on sort criteria.
 
 m : to manually enter categories to compile.
 
-o : allows the user to add, remove, and reorganize the sorting. Builds can be sorted by Flux, Profession, Gametype and Rating in any order. By default, builds are sorted by Gametype only (the rating is placed in the filename).
+o : allows the user to add, remove, and reorganize the sorting. Builds can be sorted by Flux, Primary, Secondary, Gametype and Rating in any order. By default, builds are sorted by Gametype only (the rating is placed in the filename).
 
 s : blocks most of the progress messages from standard output. Errors are still displayed.
 
