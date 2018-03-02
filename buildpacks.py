@@ -98,10 +98,14 @@ def setup_categories():
     return pagelist
 
 def get_build(i, dirorder, rdirs):
-    profession = id_profession(i)
+    primary, secondary = id_profession(i)
     if rdirs[1] != None:
-        if not profession[0] in rdirs[1]:
-            print_log(i + ' skipped. Profession doesn\'t match restriction.')
+        if not primary[0] in rdirs[1]:
+            print_log(i + ' skipped. Primary profession doesn\'t match restriction.')
+            return
+    if rdirs[2] != None:
+        if not secondary[0] in rdirs[2]:
+            print_log(i + ' skipped. Secondary profession doesn\'t match restriction.')
             return
     # Check to see if the build has an empty primary profession as that would generate an invalid template code in Guild Wars (but not in build editors)
     if 'Any/' in i and 'a' in parameters:
@@ -129,7 +133,7 @@ def get_build(i, dirorder, rdirs):
             return build_error('Warning: No gametypes found on page for ' + i + '.', i)
         ratings = id_ratings(page)
         if 'w' in parameters:
-            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(profession) + '\r\nGametypes found: ' + str(gametypes) + '\r\nPvX found: ' + str(pvx) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes))
+            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfessions: ' + str(primary) + ' / ' + str(secondary) + '\r\nGametypes found: ' + str(gametypes) + '\r\nPvX found: ' + str(pvx) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes))
         # Check for restrictions and skip build if a restriction has no matches
         rfluxes = []
         rgametypes = []
@@ -142,18 +146,18 @@ def get_build(i, dirorder, rdirs):
                 print_log('Fluxes don\'t match restriction. Skipping.')
                 return
             fluxes = rfluxes
-        # Profession check (rdirs[1]) is done earlier because we can skip unnecessary page loads that way.
-        if rdirs[2] != None:
+        # Profession checks (rdirs[1] and rdirs[2]) are done earlier because we can skip unnecessary page loads that way.
+        if rdirs[3] != None:
             for g in gametypes:
-                if g in rdirs[2]:
+                if g in rdirs[3]:
                     rgametypes += [g]
             if len(rgametypes) == 0:
                 print_log('Gametypes don\'t match restriction. Skipping.')
                 return
             gametypes = rgametypes
-        if rdirs[3] != None:
+        if rdirs[4] != None:
             for r in ratings:
-                if r in rdirs[3]:
+                if r in rdirs[4]:
                     rratings += [r]
             if len(rratings) == 0:
                 print_log('Ratings don\'t match restriction. Skipping.')
@@ -165,7 +169,9 @@ def get_build(i, dirorder, rdirs):
             if o == 'f':
                 dirlevels += [fluxes]
             elif o == 'p':
-                dirlevels += [profession]
+                dirlevels += [primary]
+            elif o == 's':
+                dirlevels += [secondary]
             elif o == 'g':
                 dirlevels += [gametypes]
             elif o == 'r':
@@ -250,11 +256,11 @@ def file_name_sub(build):
     return filename
 
 def change_dir_order():
-    orderstr = print_prompt('Enter the order of the sorts (using "f", "p", "g", "r") or leave blank for no sorting.\r\n   f = flux\r\n   p = profession\r\n   g = gametype\r\n   r = rating\r\nSort order: ')
-    if re.search(r'[^fgpr]', orderstr):
+    orderstr = print_prompt('Enter the order of the sorts (using "f", "p", "g", "r") or leave blank for no sorting.\r\n   f = flux\r\n   p = primary\r\n   s = secondary\r\n   g = gametype\r\n   r = rating\r\nSort order: ')
+    if re.search(r'[^fgprs]', orderstr):
         print_log('Invalid characters in selection.', 'yes')
         return False
-    if re.search(r'([fgpr]).*\1', orderstr):
+    if re.search(r'([fgprs]).*\1', orderstr):
         print_log('Multiple of same character in selection.', 'yes')
         return False
     return orderstr
@@ -280,7 +286,7 @@ def category_selection(catlist):
     return categories
 
 def directory_tree(dirlevels, pvx):
-    while len(dirlevels) < 5:
+    while len(dirlevels) < 6:
         dirlevels += [['']]
     directories = []
     for a in dirlevels[0]:
@@ -288,16 +294,17 @@ def directory_tree(dirlevels, pvx):
       for c in dirlevels[2]:
        for d in dirlevels[3]:
         for e in dirlevels[4]:
-         addeddir = './PvX Build Packs/' + a + '/' + b + '/' + c + '/' + d + '/' + e + '/'
-         # '//' will mess up zip writing
-         while '//' in addeddir:
-             addeddir = addeddir.replace('//','/')
-         directories += [addeddir]
-         # Conditionally add the directories for the consolidated packs
-         if re.search(r'[bclmo]', parameters) == None or 'y' in parameters:
-             pvx.add('All')
-             for area in pvx:
-                 directories += [addeddir.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')]
+         for f in dirlevels[5]:
+          addeddir = './PvX Build Packs/' + a + '/' + b + '/' + c + '/' + d + '/' + e + '/' + f + '/'
+          # '//' will mess up zip writing
+          while '//' in addeddir:
+              addeddir = addeddir.replace('//','/')
+          directories += [addeddir]
+          # Conditionally add the directories for the consolidated packs
+          if re.search(r'[bclmo]', parameters) == None or 'y' in parameters:
+              pvx.add('All')
+              for area in pvx:
+                  directories += [addeddir.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')]
     # Only create directories if saving text files
     if 't' in parameters or not 'z' in parameters:
         for folder in directories:
@@ -316,10 +323,15 @@ def id_fluxes(page):
     return fluxes
 
 def id_profession(name):
+    profdict = {'A':'Assassin','Any':'Any','any':'any','D':'Dervish','E':'Elementalist','Me':'Mesmer','Mo':'Monk','N':'Necromancer','P':'Paragon','R':'Ranger','Rt':'Ritualist','Team':'Team', 'W':'Warrior'}
     prefix = (re.search(r':(\w+)\s*/*-*', name)).group(1)
-    profdict = {'A':'Assassin','Any':'Any','D':'Dervish','E':'Elementalist','Me':'Mesmer','Mo':'Monk','N':'Necromancer','P':'Paragon','R':'Ranger','Rt':'Ritualist','Team':'Team', 'W':'Warrior'}
-    profession = [profdict[prefix]]
-    return profession
+    primary = [profdict[prefix]]
+    if primary != 'Team':
+        suffix = (re.search(r':\w+/(\w+)', name)).group(1)
+        secondary = [profdict[suffix]]
+    else:
+        secondary = None
+    return primary, secondary
 
 def id_gametypes(page):
     # Finds the build-types div, and then extracts the tags. Returns early if div or tags not found.
@@ -446,14 +458,15 @@ if __name__ == "__main__":
             dirorder = 'g'
         # Restriction filtering setup
         if 'l' in parameters:
-            print_log('For each sort, enter a comma-separated list of which attributes you\'d like to limit to. Leave blank to ignore that sort.')
+            print_log('For each sort, enter a comma-separated list of which attributes you\'d like to limit to. Leave blank to ignore that sort.', 'yes')
             rdfluxes = restrict_dirs('fluxes')
-            rdprofessions = restrict_dirs('professions')
+            rdprimaries = restrict_dirs('primaries')
+            rdsecondaries = restrict_dirs('secondaries')
             rdgametypes = restrict_dirs('gametypes')
             rdratings = restrict_dirs('ratings')
-            rdirs = [rdfluxes, rdprofessions, rdgametypes, rdratings]
+            rdirs = [rdfluxes, rdprimaries, rdsecondaries, rdgametypes, rdratings]
         else:
-            rdirs = [None, None, None, None]
+            rdirs = [None, None, None, None, None]
         pagelist = setup_categories()
         # Process the builds
         buildqueue = deque()
