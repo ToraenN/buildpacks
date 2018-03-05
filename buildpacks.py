@@ -256,7 +256,7 @@ def file_name_sub(build):
     return filename
 
 def change_dir_order():
-    orderstr = print_prompt('Enter the order of the sorts (using "f", "p", "g", "r") or leave blank for no sorting.\r\n   f = flux\r\n   p = primary\r\n   s = secondary\r\n   g = gametype\r\n   r = rating\r\nSort order: ')
+    orderstr = print_prompt('Enter the order of the sorts (using "f", "p", "s", "g", "r") or leave blank for no sorting.\r\n   f = flux\r\n   p = primary\r\n   s = secondary\r\n   g = gametype\r\n   r = rating\r\nSort order: ')
     if re.search(r'[^fgprs]', orderstr):
         print_log('Invalid characters in selection.', 'yes')
         return False
