@@ -133,7 +133,7 @@ def get_build(i, dirorder, rdirs):
             return build_error('Warning: No gametypes found on page for ' + i + '.', i)
         ratings = id_ratings(page)
         if 'w' in parameters:
-            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfessions: ' + str(primary) + ' / ' + str(secondary) + '\r\nGametypes found: ' + str(gametypes) + '\r\nPvX found: ' + str(pvx) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes))
+            log_write('Fluxes found: ' + str(fluxes) + '\r\nProfession: ' + str(primary[0]) + '/' + str(secondary[0]) + '\r\nGametypes found: ' + str(gametypes) + '\r\nPvX found: ' + str(pvx) + '\r\nRatings found: ' + str(ratings) + '\r\nCodes found: ' + str(codes))
         # Check for restrictions and skip build if a restriction has no matches
         rfluxes = []
         rgametypes = []
@@ -326,11 +326,11 @@ def id_profession(name):
     profdict = {'A':'Assassin','Any':'Any','any':'any','D':'Dervish','E':'Elementalist','Me':'Mesmer','Mo':'Monk','N':'Necromancer','P':'Paragon','R':'Ranger','Rt':'Ritualist','Team':'Team', 'W':'Warrior'}
     prefix = (re.search(r':(\w+)\s*/*-*', name)).group(1)
     primary = [profdict[prefix]]
-    if primary != 'Team':
+    if primary != ['Team']:
         suffix = (re.search(r':\w+/(\w+)', name)).group(1)
         secondary = [profdict[suffix]]
     else:
-        secondary = None
+        secondary = [None]
     return primary, secondary
 
 def id_gametypes(page):
