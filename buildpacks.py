@@ -113,7 +113,7 @@ def get_build(i, dirorder, rdirs):
         print_log(i + " skipped (empty primary profession).")
         return
     print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
-    conn = None
+    conn = None # conn must be purged between build reloads to get the new version of the page
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
     response = conn.getresponse()
