@@ -42,6 +42,7 @@ def setup_categories():
     categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Affected_by_Flux', 'Untested_testing_builds', 'Trial_Builds']
     # Fetch the builds from the categories.
     pagelist = deque()
+    conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     while categories:
         cat = categories.pop()
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat).replace('_',' ')
@@ -73,6 +74,8 @@ def setup_categories():
 
 def get_build(i):
     print("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
+    conn = None # conn must be purged between build reloads to get the new version of the page
+    conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
     response = conn.getresponse()
     page = str(response.read())
@@ -222,7 +225,6 @@ def build_error(error, build):
         return None
 
 if __name__ == "__main__":
-    global conn
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     try:
         conn.request('GET', '/PvX_wiki')
