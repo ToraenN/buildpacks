@@ -68,6 +68,7 @@ def setup_categories():
 
     # Fetch the builds from the categories.
     pagelist = deque()
+    conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     while categories:
         cat = categories.pop()
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat).replace('_',' ')
@@ -112,6 +113,8 @@ def get_build(i, dirorder, rdirs):
         print_log(i + " skipped (empty primary profession).")
         return
     print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
+    conn = None
+    conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
     response = conn.getresponse()
     page = str(response.read())
@@ -413,7 +416,6 @@ def build_error(error, build, headers = None):
         return None
 
 if __name__ == "__main__":
-    global conn
     global parameters
     parameters = input('Parameters (h for help): ')
     while 'h' in parameters:
