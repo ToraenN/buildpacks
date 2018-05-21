@@ -115,7 +115,7 @@ def get_build(i, dirorder, rdirs):
     print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
     conn = None # conn must be purged between build reloads to get the new version of the page
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
-    conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
+    conn.request('GET', '/' + i.replace(' ','_'))
     response = conn.getresponse()
     page = str(response.read())
     conn.close()
@@ -218,8 +218,8 @@ def get_build(i, dirorder, rdirs):
     elif response.status == (301 or 302):
         # Follow the redirect
         headers = str(response.getheaders())
-        newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
-        newpagename = newpagestr[0].replace('gwpvx.gamepedia.com/','').replace("')",'').replace('_',' ')
+        newpagestr = re.findall("gwpvx.gamepedia.com/(.*?)'\)", headers)
+        newpagename = newpagestr[0].replace('_',' ')
         print_log('Redirection...')
         return newpagename
     else:
