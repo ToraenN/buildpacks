@@ -4,7 +4,6 @@ import http.client
 import re
 import os
 import os.path
-import urllib.request, urllib.parse, urllib.error
 import zipfile
 from collections import deque
 
@@ -73,7 +72,7 @@ def setup_categories():
     return pagelist
 
 def get_build(i):
-    print("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
+    print("Attempting " + i.replace('_',' ') + "...")
     conn = None # conn must be purged between build reloads to get the new version of the page
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
@@ -152,7 +151,7 @@ def write_builds_zip(pack):
                     print(archivename + " already present in " + pack.name + ".zip!")
 
 def file_name_sub(build):
-    filename = (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+    filename = build.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def directory_tree(dirlevels, pvx):
