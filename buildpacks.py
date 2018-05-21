@@ -215,7 +215,7 @@ def get_build(i, dirorder, rdirs):
                 builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], directories, pvx)]
         print_log(i + " retrieved.")
         return builddatalist
-    elif response.status == 301 or 302:
+    elif response.status == (301 or 302):
         # Follow the redirect
         headers = str(response.getheaders())
         newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
