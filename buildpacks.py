@@ -5,7 +5,6 @@ import re
 import os
 import os.path
 import time
-import urllib.request, urllib.parse, urllib.error
 import zipfile
 from collections import deque
 
@@ -112,7 +111,7 @@ def get_build(i, dirorder, rdirs):
     if 'Any/' in i and 'a' in parameters:
         print_log(i + " skipped (empty primary profession).")
         return
-    print_log("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
+    print_log("Attempting " + i.replace('_',' ') + "...")
     conn = None # conn must be purged between build reloads to get the new version of the page
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
     conn.request('GET', '/' + i.replace(' ','_'))
@@ -255,7 +254,7 @@ def write_builds_zip(pack):
                     print_log(archivename + " already present in " + pack.name + ".zip!")
 
 def file_name_sub(build):
-    filename = (urllib.parse.unquote(build)).replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+    filename = build.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
     return filename
 
 def change_dir_order():
