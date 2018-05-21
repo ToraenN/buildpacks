@@ -62,7 +62,7 @@ def setup_categories():
         if response.status == 200:
             catlist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
             for buildname in catlist:
-                current = buildname.replace('\\','')
+                current = buildname.replace("\\'","'").replace("\\\\","\\")
                 if not current in pagelist:
                     pagelist += [current]
             print("Builds from " + catname + " added to list!")
