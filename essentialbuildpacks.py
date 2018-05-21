@@ -48,7 +48,7 @@ def setup_categories():
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat).replace('_',' ')
         print("Assembling build list for " + catname + "...")
         try:
-            conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
+            conn.request('GET', '/api.php?action=query&format=php&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         except:
             input('Internet connection lost.')
             return
@@ -56,13 +56,13 @@ def setup_categories():
         page = str(response.read())
         conn.close()
         # Check if a continuation was offered due to the category having more members than the display limit
-        continuestr = re.search(r'(page\|.*\|.*)",', page)
+        continuestr = re.search(r'"(page\|.*?\|.*?)"', page)
         if continuestr:
-            categories += [catname + '&cmcontinue=' + continuestr.group(1)]
+            categories += [catname.replace(' ','_') + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
-            catlist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
+            catlist = re.findall(r':"(Build:.*?)";\}', page)
             for buildname in catlist:
-                current = buildname.replace('\\','')
+                current = buildname.replace("\\'","'")
                 if not current in pagelist:
                     pagelist += [current]
             print("Builds from " + catname + " added to list!")
@@ -76,7 +76,7 @@ def get_build(i):
     print("Attempting " + (urllib.parse.unquote(i)).replace('_',' ') + "...")
     conn = None # conn must be purged between build reloads to get the new version of the page
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
-    conn.request('GET', '/' + i.replace(' ','_').replace('\'','%27').replace('"','%22'))
+    conn.request('GET', '/' + i.replace(' ','_'))
     response = conn.getresponse()
     page = str(response.read())
     conn.close()
@@ -123,11 +123,11 @@ def get_build(i):
                 builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], directories, pvx)]
         print(i + " retrieved.")
         return builddatalist
-    elif response.status == 301 or 302:
+    elif response.status == (301 or 302):
         # Follow the redirect
         headers = str(response.getheaders())
-        newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
-        newpagename = newpagestr[0].replace('gwpvx.gamepedia.com/','').replace("')",'').replace('_',' ')
+        newpagestr = re.findall("gwpvx.gamepedia.com/(.*?)'\)", headers)
+        newpagename = newpagestr[0].replace('_',' ')
         print('Redirection...')
         return newpagename
     else:
@@ -236,7 +236,7 @@ if __name__ == "__main__":
         if r1.status == 200:
             print("Holy shit! Curse is actually working. Now let's start getting that build data.")
         else:
-            print("Curse's servers are (probably) down. Try again later.\nThe provided error code is: " + str(response.status) + ' - ' + str(response.reason))
+            print("Curse's servers are (probably) down. Try again later.\nThe provided error code is: " + str(r1.status) + ' - ' + str(r1.reason))
             raise SystemExit()
         pagelist = setup_categories()
         buildqueue = deque()
