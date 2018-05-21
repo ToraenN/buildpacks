@@ -449,7 +449,7 @@ if __name__ == "__main__":
         if r1.status == 200:
             print_log("Holy shit! Curse is actually working. Now let's start getting that build data.", 'yes')
         else:
-            print_log("Curse's servers are (probably) down. Try again later.\nThe provided error code is: " + str(response.status) + ' - ' + str(response.reason), 'yes')
+            print_log("Curse's servers are (probably) down. Try again later.\nThe provided error code is: " + str(r1.status) + ' - ' + str(r1.reason), 'yes')
             raise SystemExit()
         # If we're changing the sorts, call the function until the user inputs something valid. Otherwise default to gametype-only sort.
         if 'o' in parameters:
