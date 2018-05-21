@@ -123,7 +123,7 @@ def get_build(i):
                 builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], directories, pvx)]
         print(i + " retrieved.")
         return builddatalist
-    elif response.status == 301 or 302:
+    elif response.status == (301 or 302):
         # Follow the redirect
         headers = str(response.getheaders())
         newpagestr = re.findall("gwpvx.gamepedia.com/.*?'\)", headers)
@@ -236,7 +236,7 @@ if __name__ == "__main__":
         if r1.status == 200:
             print("Holy shit! Curse is actually working. Now let's start getting that build data.")
         else:
-            print("Curse's servers are (probably) down. Try again later.\nThe provided error code is: " + str(response.status) + ' - ' + str(response.reason))
+            print("Curse's servers are (probably) down. Try again later.\nThe provided error code is: " + str(r1.status) + ' - ' + str(r1.reason))
             raise SystemExit()
         pagelist = setup_categories()
         buildqueue = deque()
