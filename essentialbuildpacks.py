@@ -62,9 +62,8 @@ def setup_categories():
         if response.status == 200:
             catlist = re.findall(r':"(Build:.*?)";\}', page)
             for buildname in catlist:
-                current = buildname.replace("\\'","'").replace("\\\\","\\")
-                if not current in pagelist:
-                    pagelist += [current]
+                if not buildname in pagelist:
+                    pagelist += [buildname]
             print("Builds from " + catname + " added to list!")
         else:
             if build_error('HTTPConnection error encountered: ' + str(response.status) + ' - ' + str(response.reason), cat) != None:
