@@ -48,7 +48,7 @@ def setup_categories():
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat).replace('_',' ')
         print("Assembling build list for " + catname + "...")
         try:
-            conn.request('GET', '/api.php?action=query&format=json&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
+            conn.request('GET', '/api.php?action=query&format=php&list=categorymembers&cmlimit=max&cmtitle=Category:' + cat)
         except:
             input('Internet connection lost.')
             return
@@ -56,11 +56,11 @@ def setup_categories():
         page = str(response.read())
         conn.close()
         # Check if a continuation was offered due to the category having more members than the display limit
-        continuestr = re.search(r'(page\|.*\|.*)",', page)
+        continuestr = re.search(r'"(page\|.*?\|.*?)"', page)
         if continuestr:
-            categories += [catname + '&cmcontinue=' + continuestr.group(1)]
+            categories += [catname.replace(' ','_') + '&cmcontinue=' + continuestr.group(1)]
         if response.status == 200:
-            catlist = re.findall('"(Build:.*?)"\}', page) + re.findall('"(Archive:.*?)"\}', page)
+            catlist = re.findall(r':"(Build:.*?)";\}', page)
             for buildname in catlist:
                 current = buildname.replace("\\'","'").replace("\\\\","\\")
                 if not current in pagelist:
