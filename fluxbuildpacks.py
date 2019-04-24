@@ -63,7 +63,7 @@ def get_build(i):
     print("Attempting " + i.replace('_',' ') + "...")
     conn = None # conn must be purged between build reloads to get the new version of the page
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
-    conn.request('GET', '/' + i.replace(' ','_'))
+    conn.request('GET', '/api.php?action=parse&prop=text&page=' + i.replace(' ','_') + '&format=php')
     response = conn.getresponse()
     page = str(response.read())
     conn.close()

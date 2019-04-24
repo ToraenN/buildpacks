@@ -114,7 +114,7 @@ def get_build(i, dirorder, rdirs):
     print_log("Attempting " + i.replace('_',' ') + "...")
     conn = None # conn must be purged between build reloads to get the new version of the page
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
-    conn.request('GET', '/' + i.replace(' ','_'))
+    conn.request('GET', '/api.php?action=parse&prop=text&page=' + i.replace(' ','_') + '&format=php')
     response = conn.getresponse()
     page = str(response.read())
     conn.close()
@@ -398,7 +398,7 @@ def log_write(string):
     actiontime = time.gmtime()
     timestamp = str(actiontime[3]).zfill(2) + ':' + str(actiontime[4]).zfill(2) + ':' + str(actiontime[5]).zfill(2)
     with open(logname, 'a') as textlog:
-        textlog.write(timestamp + ': ' + string.replace('\r\n', '\r\n' + ' ' * 10) + '\r\n')
+        textlog.write(timestamp + ': ' + string.replace('\r\n', '\n' + ' ' * 10) + '\n')
 
 def build_error(error, build, headers = None):
     print_log(error, 'yes')
