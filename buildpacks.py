@@ -61,9 +61,9 @@ def setup_categories():
         if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n) '):
             categories += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds','WELL'])
     if len(categories) == 0:
-        # Default to all currently vetted and vetting builds, including the auto-archiving Flux builds.
+        # Default to all currently vetted and vetting builds.
         print_log("Using default categories.", "yes")
-        categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Untested_testing_builds', 'Trial_Builds', 'Affected_by_Flux']
+        categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Untested_testing_builds', 'Trial_Builds']
 
     # Fetch the builds from the categories.
     pagelist = deque()
@@ -114,7 +114,7 @@ def get_build(i, dirorder, rdirs):
     print_log("Attempting " + i.replace('_',' ') + "...")
     conn = None # conn must be purged between build reloads to get the new version of the page
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
-    conn.request('GET', '/api.php?action=parse&prop=text&page=' + i.replace(' ','_') + '&format=php')
+    conn.request('GET', '/api.php?action=parse&prop=text|wikitext&page=' + i.replace(' ','_') + '&format=php')
     response = conn.getresponse()
     page = str(response.read())
     conn.close()
@@ -389,26 +389,28 @@ def id_gametypes(page):
         gametypes.add(cleanedtype)
     return gametypes, pvx
 
-def id_ratings(page): 
+def id_ratings(page):
     ratings = []
-    if 'This build is part of the current metagame.' in page:
+    if re.search('\|meta=yes|\{\{meta-build', page, re.I):
         ratings += ['Meta']
-    # A second if statement because builds can have both Meta and one of Good/Great
-    if 'in the range from 4.75' in page:
+    elif re.search('\{\{provisional-build', page, re.I):
+        ratings += ['Provisional']
+    # A second if statement because builds can have none or one of Meta/Provisional and one of Great/Good
+    if re.search('\|rating=great|\{\{great-build', page, re.I):
         ratings += ['Great']
-    elif 'in the range from 3.75' in page:
+    elif re.search('\|rating=good|\{\{good-build', page, re.I):
         ratings += ['Good']
-    elif 'below 3.75' in page:
+    elif re.search('\|rating=trash|\{\{trash-build', page, re.I):
         ratings += ['Trash']
-    elif re.search(r'This build article is a <a.*?>stub</a>', page):
+    elif re.search('\{\{build-stub\}\}', page, re.I):
         ratings += ['Stub']
-    elif 'in the <i>trial</i> phase.' in page:
+    elif re.search('\{\{untested-trial|\{\{trial-build', page, re.I):
         ratings += ['Trial']
-    elif 'This build is currently being tested.' in page:
+    elif re.search('\{\{untested-testing|\{\{testing-build', page, re.I):
         ratings += ['Testing']
-    elif 'been archived' in page:
+    elif re.search('\{\{archived-build', page, re.I):
         ratings += ['Archived']
-    elif 'File:Image_Abandoned.jpg' in page:
+    elif re.search('\{\{abandoned', page, re.I):
         ratings += ['Abandoned']
     if ratings == []:
         ratings = ['Nonrated']

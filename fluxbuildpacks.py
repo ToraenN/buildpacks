@@ -162,20 +162,20 @@ def directory_tree(dirlevels):
             directories += [addeddir]
     return directories
 
-def id_ratings(page): 
+def id_ratings(page):
     ratings = []
-    if 'This build is part of the current metagame.' in page:
+    if re.search('\|meta=yes|\{\{meta-build', page, re.I):
         ratings += ['Meta']
-    elif 'This build is provisionally vetted' in page:
+    elif re.search('\{\{provisional-build', page, re.I):
         ratings += ['Provisional']
     # A second if statement because builds can have none or one of Meta/Provisional and one of Great/Good
-    if 'in the range from 4.75' in page:
+    if re.search('\|rating=great|\{\{great-build', page, re.I):
         ratings += ['Great']
-    elif 'in the range from 3.75' in page:
+    elif re.search('\|rating=good|\{\{good-build', page, re.I):
         ratings += ['Good']
-    elif 'in the <i>trial</i> phase.' in page:
+    elif re.search('\{\{untested-trial|\{\{trial-build', page, re.I):
         ratings += ['Trial']
-    elif 'This build is currently being tested.' in page:
+    elif re.search('\{\{untested-testing|\{\{testing-build', page, re.I):
         ratings += ['Testing']
     if ratings == []:
         ratings = ['Nonrated']
