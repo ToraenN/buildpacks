@@ -457,10 +457,10 @@ if __name__ == "__main__":
         print('m: manual category entry. Enter as many categories as you want.')
         print('o: change folder layout.')
         print('s: silent mode.')
-        print('t: save text files even when saving zip files.')
+        print('t: save text files.')
         print('w: write log.')
         print('y: build consolidated packs even with category/sort selects (overrides "b")')
-        print('z: save as zip files.')
+        print('z: save zip files even when saving text files.')
         parameters = input('Parameters: ')
     if 'w' in parameters:
         global logname
@@ -522,9 +522,9 @@ if __name__ == "__main__":
         while savedpacks:
             currentpack = savedpacks.popleft()
             print_log('Saving pack ' + currentpack.name + ' (' + str(len(currentpack.builds)) + ' builds)...', 'yes')
-            if 't' in parameters or not 'z' in parameters:
+            if 't' in parameters:
                 write_builds_txt(currentpack)
-            if 'z' in parameters:
+            if 'z' in parameters or not 't' in parameters:
                 write_builds_zip(currentpack)
             print_log('Pack ' + currentpack.name + ' saved!', 'yes')
     print_prompt("Script complete.")

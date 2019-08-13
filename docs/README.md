@@ -30,13 +30,15 @@ o : allows the user to add, remove, and reorganize the sorting. Builds can be so
 
 s : blocks most of the progress messages from standard output. Errors are still displayed.
 
-t : save text files even if saving zip files.
+t : save text files instead of zip files.
 
 w : writes all progress messages, HTTP error messages and build information + directories to a text file.
 
 y : forces the consolidated zip files to be made even if sort/category/'b' options are enabled.
 
-z : Creates zip archives instead of saving individual text files. Will create the three consolidated zip files if no sort or category parameters are entered.
+z : forces creation of zip archives even if saving individual text files. 
+
+* Three consolidated packs ('PvE Build Packs', 'PvP Build Packs', and 'All Build Packs') will be created if no sort or category parameters are entered.
 
 fluxbuildpacks.py creates the standard Flux build pack as a zip without any user input. Made as a separate script because of program flow issues with trying to integrate it into buildpacks.py (not that I tried very hard). 
 
