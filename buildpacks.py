@@ -350,12 +350,10 @@ def id_codes(page):
 def id_fluxes(page):
     regex = re.compile('<td><b>This build is significantly affected by the <a href="\/PvXwiki:Flux" title="PvXwiki:Flux">Flux<\/a>: <a href="http:\/\/wiki\.guildwars\.com\/wiki\/.*?" class="extiw" title="gww:(?P<flux>.*?)"')
     rawfluxes = re.findall(regex, page)
-    if len(rawfluxes) == 0:
-        fluxes = ['Unaffected by Flux']
-    else:
-        fluxes = []
-        for rf in rawfluxes:
-            fluxes.append(rf.replace('\\', ''))
+    fluxes = []
+    for rf in rawfluxes:
+        rf = rf.replace('&#39;', "'")
+        fluxes.append(rf)
     return fluxes
 
 def id_profession(name):

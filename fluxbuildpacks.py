@@ -69,13 +69,13 @@ def get_build(i):
     conn.close()
     if response.status == 200:
         # Grab the codes first
-        codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
+        codes = id_codes(page)
         # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
             return build_error('Warning: No build template found on page for ' + i + '.', i)
         # Template discrepancies (missing profession, impossible atts, duplicated skills, etc.) cause this error
         for c in codes:
-            if c == '':
+            if c[2] == '':
                 return build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', i)
         # Grab all the other build info
         fluxes = id_fluxes(page)
@@ -90,11 +90,37 @@ def get_build(i):
         builddatalist = []
         if 'Team' in i and len(codes) > 1:
             num = 0
-            for j in codes:
-                num += 1
-                builddatalist += [BuildData(file_name_sub(i) + ' - ' + str(num) + '.txt', j, directories)]
+            for position, title, code in codes:
+                if position == "": # If code is not for a variant
+                    num += 1
+                    builddatalist += [BuildData(str(num) + ' Standard.txt', code, directories)]
+                else: # If code is for a variant (variants without a defined position will be skipped for team builds)
+                    if title == "":
+                        print(i + " has an unnamed variant for position " + str(position) + ", which will be saved under a generic name.")
+                        tempname = ''
+                    else:
+                        tempname = ' - ' + title
+                    builddatalist += [BuildData(file_name_sub(str(position) + ' Variant' + tempname + '.txt'), code, directories)]
         else:
-            builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], directories)]
+            # Sort codes between mainbar and variant bars
+            mainbars = []
+            variants = []
+            for position, title, code in codes:
+                if title == "":
+                    mainbars.append(code) # Only retrieve code for mainbars
+                else:
+                    variants.append((title, code)) # Skip the position argument (as we are not in team builds here)
+            builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories)]
+            # Handle any variant bars
+            num = 0
+            for title, code in variants:
+                num += 1
+                if title == "":
+                    print(i + " has an unnamed variant, which will be saved under a generic name. Please fix the issue for future build packs.")
+                    tempname = i + ' Variant ' + str(num)
+                else:
+                    tempname = title
+                builddatalist += [BuildData(file_name_sub(tempname) + rateinname + '.txt', code, directories)]
         print(i + " retrieved.")
         return builddatalist
     elif response.status == (301 or 302):
@@ -155,14 +181,19 @@ def id_ratings(page):
         ratings = ['Nonrated']
     return ratings
 
+def id_codes(page):
+    # Each retrieved code will be a 3-tuple of the format (position, title, code). The first two will be blank for any code not wrapped in Template:Variantbar
+    regex = re.compile('(?:<th style=""><big>Major Variant(?:(?:&#160;)| )(?P<position>\d*?){0,1}: (?P<title>.*?)<\/big>.*?){0,1}<input id="gws_template_input" type="text" value="(?P<code>.*?)"')
+    codes = re.findall(regex, page)
+    return codes
+
 def id_fluxes(page):
-    rawfluxes = re.findall('>(Affected by [^<>]*?) Flux<', page)
-    if len(rawfluxes) == 0:
-        fluxes = ['Unaffected by Flux']
-    else:
-        fluxes = []
-        for rf in rawfluxes:
-            fluxes.append(rf.replace('\\', ''))
+    regex = re.compile('<td><b>This build is significantly affected by the <a href="\/PvXwiki:Flux" title="PvXwiki:Flux">Flux<\/a>: <a href="http:\/\/wiki\.guildwars\.com\/wiki\/.*?" class="extiw" title="gww:(?P<flux>.*?)"')
+    rawfluxes = re.findall(regex, page)
+    fluxes = []
+    for rf in rawfluxes:
+        rf = rf.replace('&#39;', "'")
+        fluxes.append(rf)
     return fluxes
 
 def build_error(error, build):

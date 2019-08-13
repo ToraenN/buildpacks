@@ -38,9 +38,7 @@ y : forces the consolidated zip files to be made even if sort/category/'b' optio
 
 z : Creates zip archives instead of saving individual text files. Will create the three consolidated zip files if no sort or category parameters are entered.
 
-essentialbuildpacks.py does not ask for any parameters and just collects the default categories. It also only saves zips, not the separate text files.
-
-fluxbuildpacks.py creates the standard Flux build pack without any user input. Made as a separate script because of program flow issues with trying to integrate it into essentialbuildpacks.py (not that I tried very hard).
+fluxbuildpacks.py creates the standard Flux build pack as a zip without any user input. Made as a separate script because of program flow issues with trying to integrate it into buildpacks.py (not that I tried very hard). 
 
 # Notes
 The scripts only recognize builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
