@@ -354,6 +354,8 @@ def id_fluxes(page):
     for rf in rawfluxes: # Xinrae's Revenge
         rf = rf.replace('&#39;', "'")
         fluxes.append(rf)
+    if len(fluxes) == 0:
+        fluxes = ['Unaffected by Flux']
     return fluxes
 
 def id_profession(name):
