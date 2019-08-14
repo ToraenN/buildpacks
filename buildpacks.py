@@ -410,7 +410,7 @@ def id_ratings(page):
         ratings += ['Testing']
     elif re.search('\{\{archived-build', page, re.I):
         ratings += ['Archived']
-    elif re.search('\{\{abandoned', page, re.I):
+    elif re.search('\|rating=abandoned|\{\{abandoned', page, re.I):
         ratings += ['Abandoned']
     if ratings == []:
         ratings = ['Nonrated']
