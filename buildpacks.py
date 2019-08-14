@@ -61,9 +61,9 @@ def setup_categories():
         if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n) '):
             categories += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds','WELL'])
     if len(categories) == 0:
-        # Default to all currently vetted and vetting builds, including the auto-archiving Flux builds.
+        # Default to all currently vetted and vetting builds.
         print_log("Using default categories.", "yes")
-        categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Untested_testing_builds', 'Trial_Builds', 'Affected_by_Flux']
+        categories = ['All_working_PvP_builds', 'All_working_PvE_builds', 'Untested_testing_builds', 'Trial_Builds']
 
     # Fetch the builds from the categories.
     pagelist = deque()
@@ -114,19 +114,19 @@ def get_build(i, dirorder, rdirs):
     print_log("Attempting " + i.replace('_',' ') + "...")
     conn = None # conn must be purged between build reloads to get the new version of the page
     conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
-    conn.request('GET', '/api.php?action=parse&prop=text&page=' + i.replace(' ','_') + '&format=php')
+    conn.request('GET', '/api.php?action=parse&prop=text|wikitext&page=' + i.replace(' ','_') + '&format=php')
     response = conn.getresponse()
     page = str(response.read())
     conn.close()
     if response.status == 200:
         # Grab the codes first
-        codes = re.findall('<input id="gws_template_input" type="text" value="(.*?)"', page)
+        codes = id_codes(page)
         # If no template codes found on the build page, prompt user to fix the page
         if len(codes) == 0:
             return build_error('Warning: No build template found on page for ' + i + '.', i)
         # Template discrepancies (missing profession, impossible atts, duplicated skills, etc.) cause this error
         for c in codes:
-            if c == '':
+            if c[2] == '':
                 return build_error('Warning: Blank code found in ' + i + '! (code #' + str(codes.index(c) + 1) + ')', i)
         # Grab all the other build info
         fluxes = id_fluxes(page)
@@ -189,18 +189,35 @@ def get_build(i, dirorder, rdirs):
         # If we're making a log file, inlcude the directory info
         if 'w' in parameters:
             log_write('Directories used: ' + str(directories))
-        # Check to see if the build is a team build
+        
         builddatalist = []
+        # Check to see if the build is a team build
         if 'Team' in i and len(codes) > 1:
             num = 0
-            for j in codes:
-                num += 1
-                builddatalist += [BuildData(file_name_sub(i) + ' - ' + str(num) + '.txt', j, directories, pvx)]
+            for position, title, code in codes:
+                if position == "": # If code is not for a variant
+                    num += 1
+                    builddatalist += [BuildData(str(num) + ' Standard.txt', code, directories, pvx)]
+                else: # If code is for a variant (variants without a defined position will be skipped for team builds)
+                    if title == "":
+                        print_log(i + " has an unnamed variant for position " + str(position) + ", which will be saved under a generic name.", "yes")
+                        tempname = ''
+                    else:
+                        tempname = ' - ' + title
+                    builddatalist += [BuildData(file_name_sub(str(position) + ' Variant' + tempname + '.txt'), code, directories, pvx)]
         else:
-            # Check for a non-team build with both player and hero versions, and sort them appropriately
-            if len(codes) > 1 and 'Hero' in gametypes and 'General' in gametypes:
+            # Sort codes between mainbar and variant bars
+            mainbars = []
+            variants = []
+            for position, title, code in codes:
+                if title == "":
+                    mainbars.append(code) # Only retrieve code for mainbars
+                else:
+                    variants.append((title, code)) # Skip the position argument (as we are not in team builds here)
+            # Check for a non-team build with both player and hero mainbars, and sort them appropriately
+            if len(mainbars) > 1 and 'Hero' in gametypes and 'General' in gametypes:
                 if not 'g' in dirorder:
-                    builddatalist += [BuildData(file_name_sub(i) + ' - Hero' + rateinname + '.txt', codes[1], directories, pvx), BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], directories, pvx)]
+                    builddatalist += [BuildData(file_name_sub(i) + ' - Hero' + rateinname + '.txt', mainbars[1], directories, pvx), BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories, pvx)]
                 else:
                     herodirs = []
                     nonherodirs = []
@@ -209,9 +226,19 @@ def get_build(i, dirorder, rdirs):
                             herodirs += [d]
                         else:
                             nonherodirs += [d]
-                    builddatalist += [BuildData(file_name_sub(i) + ' - Hero' + rateinname + '.txt', codes[1], herodirs, pvx), BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], nonherodirs, pvx)]
+                    builddatalist += [BuildData(file_name_sub(i) + ' - Hero' + rateinname + '.txt', mainbars[1], herodirs, pvx), BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], nonherodirs, pvx)]
             else:
-                builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', codes[0], directories, pvx)]
+                builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories, pvx)]
+            # Handle any variant bars
+            num = 0
+            for title, code in variants:
+                num += 1
+                if title == "": # This branch unreachable unless something weird happens. Leaving as-is until I fix upstream handling.
+                    print_log(i + " has an unnamed variant, which will be saved under a generic name. Please fix the issue for future build packs.", "yes")
+                    tempname = i + ' Variant ' + str(num)
+                else:
+                    tempname = title
+                builddatalist += [BuildData(file_name_sub(tempname) + rateinname + '.txt', code, directories, pvx)]
         print_log(i + " retrieved.")
         return builddatalist
     elif response.status == (301 or 302):
@@ -308,20 +335,27 @@ def directory_tree(dirlevels, pvx):
               for area in pvx:
                   directories += [addeddir.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')]
     # Only create directories if saving text files
-    if 't' in parameters or not 'z' in parameters:
+    if 't' in parameters:
         for folder in directories:
             if not os.path.isdir(folder):
                 os.makedirs(folder)
     return directories
 
+def id_codes(page):
+    # Each retrieved code will be a 3-tuple of the format (position, title, code). The first two will be blank for any code not wrapped in Template:Variantbar
+    regex = re.compile('(?:<th style=""><big>Major Variant(?:(?:&#160;)| )(?P<position>\d*?){0,1}: (?P<title>.*?)<\/big>.*?){0,1}<input id="gws_template_input" type="text" value="(?P<code>.*?)"')
+    codes = re.findall(regex, page)
+    return codes
+
 def id_fluxes(page):
-    rawfluxes = re.findall('>(Affected by [^<>]*?) Flux<', page)
-    if len(rawfluxes) == 0:
+    regex = re.compile('<td><b>This build is significantly affected by the <a href="\/PvXwiki:Flux" title="PvXwiki:Flux">Flux<\/a>: <a href="http:\/\/wiki\.guildwars\.com\/wiki\/.*?" class="extiw" title="gww:(?P<flux>.*?)"')
+    rawfluxes = re.findall(regex, page)
+    fluxes = []
+    for rf in rawfluxes: # Xinrae's Revenge
+        rf = rf.replace('&#39;', "'")
+        fluxes.append(rf)
+    if len(fluxes) == 0:
         fluxes = ['Unaffected by Flux']
-    else:
-        fluxes = []
-        for rf in rawfluxes:
-            fluxes.append(rf.replace('\\', ''))
     return fluxes
 
 def id_profession(name):
@@ -357,26 +391,28 @@ def id_gametypes(page):
         gametypes.add(cleanedtype)
     return gametypes, pvx
 
-def id_ratings(page): 
+def id_ratings(page):
     ratings = []
-    if 'This build is part of the current metagame.' in page:
+    if re.search('\|meta=yes|\{\{meta-build', page, re.I):
         ratings += ['Meta']
-    # A second if statement because builds can have both Meta and one of Good/Great
-    if 'in the range from 4.75' in page:
+    elif re.search('\{\{provisional-build', page, re.I):
+        ratings += ['Provisional']
+    # A second if statement because builds can have none or one of Meta/Provisional and one of Great/Good
+    if re.search('\|rating=great|\{\{great-build', page, re.I):
         ratings += ['Great']
-    elif 'in the range from 3.75' in page:
+    elif re.search('\|rating=good|\{\{good-build', page, re.I):
         ratings += ['Good']
-    elif 'below 3.75' in page:
+    elif re.search('\|rating=trash|\{\{trash-build', page, re.I):
         ratings += ['Trash']
-    elif re.search(r'This build article is a <a.*?>stub</a>', page):
+    elif re.search('\{\{build-stub\}\}', page, re.I):
         ratings += ['Stub']
-    elif 'in the <i>trial</i> phase.' in page:
+    elif re.search('\{\{untested-trial|\{\{trial-build', page, re.I):
         ratings += ['Trial']
-    elif 'This build is currently being tested.' in page:
+    elif re.search('\{\{untested-testing|\{\{testing-build', page, re.I):
         ratings += ['Testing']
-    elif 'been archived' in page:
+    elif re.search('\{\{archived-build', page, re.I):
         ratings += ['Archived']
-    elif 'File:Image_Abandoned.jpg' in page:
+    elif re.search('\|rating=abandoned|\{\{abandoned', page, re.I):
         ratings += ['Abandoned']
     if ratings == []:
         ratings = ['Nonrated']
@@ -425,10 +461,10 @@ if __name__ == "__main__":
         print('m: manual category entry. Enter as many categories as you want.')
         print('o: change folder layout.')
         print('s: silent mode.')
-        print('t: save text files even when saving zip files.')
+        print('t: save text files.')
         print('w: write log.')
         print('y: build consolidated packs even with category/sort selects (overrides "b")')
-        print('z: save as zip files.')
+        print('z: save zip files even when saving text files.')
         parameters = input('Parameters: ')
     if 'w' in parameters:
         global logname
@@ -490,9 +526,9 @@ if __name__ == "__main__":
         while savedpacks:
             currentpack = savedpacks.popleft()
             print_log('Saving pack ' + currentpack.name + ' (' + str(len(currentpack.builds)) + ' builds)...', 'yes')
-            if 't' in parameters or not 'z' in parameters:
+            if 't' in parameters:
                 write_builds_txt(currentpack)
-            if 'z' in parameters:
+            if 'z' in parameters or not 't' in parameters:
                 write_builds_zip(currentpack)
             print_log('Pack ' + currentpack.name + ' saved!', 'yes')
     print_prompt("Script complete.")
