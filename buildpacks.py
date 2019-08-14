@@ -200,7 +200,7 @@ def get_build(i, dirorder, rdirs):
                     builddatalist += [BuildData(str(num) + ' Standard.txt', code, directories, pvx)]
                 else: # If code is for a variant (variants without a defined position will be skipped for team builds)
                     if title == "":
-                        print_log(i + " has an unnamed variant for position " + str(position) + ", which will be saved under a generic name.")
+                        print_log(i + " has an unnamed variant for position " + str(position) + ", which will be saved under a generic name.", "yes")
                         tempname = ''
                     else:
                         tempname = ' - ' + title
@@ -233,8 +233,8 @@ def get_build(i, dirorder, rdirs):
             num = 0
             for title, code in variants:
                 num += 1
-                if title == "":
-                    print_log(i + " has an unnamed variant, which will be saved under a generic name. Please fix the issue for future build packs.")
+                if title == "": # This branch unreachable unless something weird happens. Leaving as-is until I fix upstream handling.
+                    print_log(i + " has an unnamed variant, which will be saved under a generic name. Please fix the issue for future build packs.", "yes")
                     tempname = i + ' Variant ' + str(num)
                 else:
                     tempname = title
@@ -351,7 +351,7 @@ def id_fluxes(page):
     regex = re.compile('<td><b>This build is significantly affected by the <a href="\/PvXwiki:Flux" title="PvXwiki:Flux">Flux<\/a>: <a href="http:\/\/wiki\.guildwars\.com\/wiki\/.*?" class="extiw" title="gww:(?P<flux>.*?)"')
     rawfluxes = re.findall(regex, page)
     fluxes = []
-    for rf in rawfluxes:
+    for rf in rawfluxes: # Xinrae's Revenge
         rf = rf.replace('&#39;', "'")
         fluxes.append(rf)
     return fluxes

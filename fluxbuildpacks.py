@@ -115,7 +115,7 @@ def get_build(i):
             num = 0
             for title, code in variants:
                 num += 1
-                if title == "":
+                if title == "": # This branch unreachable unless something weird happens. Leaving as-is until I fix upstream handling.
                     print(i + " has an unnamed variant, which will be saved under a generic name. Please fix the issue for future build packs.")
                     tempname = i + ' Variant ' + str(num)
                 else:
@@ -191,7 +191,7 @@ def id_fluxes(page):
     regex = re.compile('<td><b>This build is significantly affected by the <a href="\/PvXwiki:Flux" title="PvXwiki:Flux">Flux<\/a>: <a href="http:\/\/wiki\.guildwars\.com\/wiki\/.*?" class="extiw" title="gww:(?P<flux>.*?)"')
     rawfluxes = re.findall(regex, page)
     fluxes = []
-    for rf in rawfluxes:
+    for rf in rawfluxes: # Xinrae's Revenge
         rf = rf.replace('&#39;', "'")
         fluxes.append(rf)
     return fluxes
