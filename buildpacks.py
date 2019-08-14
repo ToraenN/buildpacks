@@ -335,7 +335,7 @@ def directory_tree(dirlevels, pvx):
               for area in pvx:
                   directories += [addeddir.replace('./PvX Build Packs/', './PvX Build Packs/' + area + ' Build Packs/')]
     # Only create directories if saving text files
-    if 't' in parameters or not 'z' in parameters:
+    if 'z' in parameters or not 't' in parameters:
         for folder in directories:
             if not os.path.isdir(folder):
                 os.makedirs(folder)
