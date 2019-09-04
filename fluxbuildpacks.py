@@ -97,7 +97,7 @@ def get_build(i):
                     num += 1
                     builddatalist += [BuildData(str(num) + ' Standard.txt', code, directories)]
                 else: # If code is for a variant (variants without a defined position will be skipped for team builds)
-                    if title == "":
+                    if title == "{{{name}}}":
                         print(i + " has an unnamed variant for position " + str(position) + ", which will be saved under a generic name.")
                         tempname = ''
                     else:
@@ -112,12 +112,15 @@ def get_build(i):
                     mainbars.append(code) # Only retrieve code for mainbars
                 else:
                     variants.append((title, code)) # Skip the position argument (as we are not in team builds here)
-            builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories)]
+            try:
+                builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories, pvx)]
+            except:
+                pass # All templates were enclosed in {{variantbar}}, which is a valid page format for certain builds
             # Handle any variant bars
             num = 0
             for title, code in variants:
                 num += 1
-                if title == "": # This branch unreachable unless something weird happens. Leaving as-is until I fix upstream handling.
+                if title == "{{{name}}}":
                     print(i + " has an unnamed variant, which will be saved under a generic name. Please fix the issue for future build packs.")
                     tempname = i + ' Variant ' + str(num)
                 else:
@@ -184,7 +187,7 @@ def id_ratings(page):
 
 def id_codes(page):
     # Each retrieved code will be a 3-tuple of the format (position, title, code). The first two will be blank for any code not wrapped in Template:Variantbar
-    regex = re.compile('(?:<th style=""><big>Major Variant(?:(?:&#160;)| )(?P<position>\d*?){0,1}: (?P<title>.*?)<\/big>.*?){0,1}<input id="gws_template_input" type="text" value="(?P<code>.*?)"')
+    regex = re.compile('(?s)(?:<th style=""><big>(?:Position (?P<position>\d+)&#160;){0,1}Variant: (?P<title>.*?)<\/big>.*?){0,1}<input id="gws_template_input" type="text" value="(?P<code>.*?)"')
     codes = re.findall(regex, page)
     return codes
 

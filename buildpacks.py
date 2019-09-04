@@ -201,7 +201,7 @@ def get_build(i, dirorder, rdirs):
                     num += 1
                     builddatalist += [BuildData(str(num) + ' Standard.txt', code, directories, pvx)]
                 else: # If code is for a variant (variants without a defined position will be skipped for team builds)
-                    if title == "":
+                    if title == "{{{name}}}":
                         print_log(i + " has an unnamed variant for position " + str(position) + ", which will be saved under a generic name.", "yes")
                         tempname = ''
                     else:
@@ -230,12 +230,15 @@ def get_build(i, dirorder, rdirs):
                             nonherodirs += [d]
                     builddatalist += [BuildData(file_name_sub(i) + ' - Hero' + rateinname + '.txt', mainbars[1], herodirs, pvx), BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], nonherodirs, pvx)]
             else:
-                builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories, pvx)]
+                try:
+                    builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories, pvx)]
+                except:
+                    pass # All templates were enclosed in {{variantbar}}, which is a valid page format for certain builds
             # Handle any variant bars
             num = 0
             for title, code in variants:
                 num += 1
-                if title == "": # This branch unreachable unless something weird happens. Leaving as-is until I fix upstream handling.
+                if title == "{{{name}}}":
                     print_log(i + " has an unnamed variant, which will be saved under a generic name. Please fix the issue for future build packs.", "yes")
                     tempname = i + ' Variant ' + str(num)
                 else:
@@ -345,7 +348,7 @@ def directory_tree(dirlevels, pvx):
 
 def id_codes(page):
     # Each retrieved code will be a 3-tuple of the format (position, title, code). The first two will be blank for any code not wrapped in Template:Variantbar
-    regex = re.compile('(?:<th style=""><big>Major Variant(?:(?:&#160;)| )(?P<position>\d*?){0,1}: (?P<title>.*?)<\/big>.*?){0,1}<input id="gws_template_input" type="text" value="(?P<code>.*?)"')
+    regex = re.compile('(?s)(?:<th style=""><big>(?:Position (?P<position>\d+)&#160;){0,1}Variant: (?P<title>.*?)<\/big>.*?){0,1}<input id="gws_template_input" type="text" value="(?P<code>.*?)"')
     codes = re.findall(regex, page)
     return codes
 
