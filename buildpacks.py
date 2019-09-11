@@ -353,7 +353,7 @@ def id_codes(page):
     return codes
 
 def id_fluxes(page):
-    regex = re.compile('{{flux\|(.*?)[\|}]')
+    regex = re.compile('{{[Ff]lux\|(.*?)[\|}]')
     rawfluxes = re.findall(regex, page)
     fluxes = []
     for rf in rawfluxes: # Xinrae's Revenge
