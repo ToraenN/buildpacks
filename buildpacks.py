@@ -286,7 +286,7 @@ def write_builds_zip(pack):
                     print_log(archivename + " already present in " + pack.name + ".zip!")
 
 def file_name_sub(build):
-    filename = build.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+    filename = build.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'').replace("\\","")
     return filename
 
 def change_dir_order():
