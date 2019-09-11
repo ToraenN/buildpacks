@@ -12,13 +12,11 @@ Danny provided the original version of this script (which can be found in the hi
 Parameters modify this basic program flow as follows.
 
 # Parameters
-If none are entered, the script will select the 'All working PvP builds', 'All working PvE builds', 'Affected by Flux', 'Untested testing builds' and 'Trial Builds' categories (all of the currently vetted and vetting in progress builds) and process them as stated in the Program Flow section. The parameters that can be entered are:
+If none are entered, the script will select the 'All_working_PvP_builds', 'All_working_PvE_builds', 'All_untested_testing_PvE_builds', 'All_untested_testing_PvP_builds', 'All_untested_trial_PvE_builds', and 'All_untested_trial_PvP_builds' categories (all of the builds in the Real Vetting system) and process them as stated in the Program Flow section. The parameters that can be entered are:
 
 a : to not save builds with an empty primary profession (some build editor programs can read them but Guild Wars cannot).
 
 b : prevents the consolidated zip files from being made.
-
-c : to have the program list all preprogrammed categories and ask the user which ones should be compiled from.
 
 h : displays the list of available parameters. Any other parameters are ignored and the prompt is brought up again.
 
