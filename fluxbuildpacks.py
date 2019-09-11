@@ -151,7 +151,7 @@ def write_builds_zip(pack):
                     print(archivename + " already present in " + pack.name + ".zip!")
 
 def file_name_sub(build):
-    filename = build.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'')
+    filename = build.replace('Build:','').replace('Archive:','').replace('/','_').replace('"','\'\'').replace("\\", "")
     return filename
 
 def directory_tree(dirlevels):
@@ -192,12 +192,12 @@ def id_codes(page):
     return codes
 
 def id_fluxes(page):
-    regex = re.compile('<td><b>This build is significantly affected by the <a href="\/PvXwiki:Flux" title="PvXwiki:Flux">Flux<\/a>: <a href="http:\/\/wiki\.guildwars\.com\/wiki\/.*?" class="extiw" title="gww:(?P<flux>.*?)"')
+    regex = re.compile('{{flux\|(.*?)[\|}]')
     rawfluxes = re.findall(regex, page)
     fluxes = []
     for rf in rawfluxes: # Xinrae's Revenge
-        rf = rf.replace('&#39;', "'")
-        fluxes.append(rf)
+        flux = rf.replace("\\", "")
+        fluxes.append(flux)
     return fluxes
 
 def build_error(error, build):
