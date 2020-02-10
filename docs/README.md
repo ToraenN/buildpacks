@@ -38,8 +38,6 @@ z : forces creation of zip archives even if saving individual text files.
 
 * Three consolidated packs ('PvE Build Packs', 'PvP Build Packs', and 'All Build Packs') will be created if no sort or category parameters are entered.
 
-fluxbuildpacks.py creates the standard Flux build pack as a zip without any user input. Made as a separate script because of program flow issues with trying to integrate it into buildpacks.py (not that I tried very hard). 
-
 # Notes
 The scripts only recognize builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
 
