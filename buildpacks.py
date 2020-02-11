@@ -399,24 +399,24 @@ def id_gametypes(page):
 def id_ratings(page):
     ratings = []
     # First if statement for special status
-    if re.search('\|meta=yes|{{meta-build', page, re.I):
+    if re.search('\|meta=yes', page, re.I):
         ratings += ['Meta']
-    elif re.search('\|provisional=yes|{{provisional-build', page, re.I):
+    elif re.search('\|provisional=yes', page, re.I):
         ratings += ['Provisional']
     # Second if statement for rating
-    if re.search('\|rating=great|{{great-build', page, re.I):
+    if re.search('\|rating=great', page, re.I):
         ratings += ['Great']
-    elif re.search('\|rating=good|{{good-build', page, re.I):
+    elif re.search('\|rating=good', page, re.I):
         ratings += ['Good']
-    elif re.search('\|rating=trash|{{trash-build', page, re.I):
+    elif re.search('\|rating=trash', page, re.I):
         ratings += ['Trash']
-    elif re.search('\|rating=trial|{{untested-trial|{{trial-build', page, re.I):
+    elif re.search('\|rating=trial', page, re.I):
         ratings += ['Trial']
-    elif re.search('\|rating=testing|{{untested-testing|{{testing-build', page, re.I):
+    elif re.search('\|rating=testing', page, re.I):
         ratings += ['Testing']
     elif re.search('\|rating=archived|{{archived-build', page, re.I):
         ratings += ['Archived']
-    elif re.search('\|rating=abandoned|{{abandoned', page, re.I):
+    elif re.search('\|rating=abandoned', page, re.I):
         ratings += ['Abandoned']
     return ratings
 
