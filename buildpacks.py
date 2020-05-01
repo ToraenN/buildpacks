@@ -399,9 +399,9 @@ def id_gametypes(page):
 def id_ratings(page):
     ratings = []
     # First if statement for special status
-    if re.search('\|meta=yes', page, re.I):
+    if re.search('\|status=meta', page, re.I):
         ratings += ['Meta']
-    elif re.search('\|provisional=yes', page, re.I):
+    elif re.search('\|status=provisional', page, re.I):
         ratings += ['Provisional']
     # Second if statement for rating
     if re.search('\|rating=great', page, re.I):
@@ -414,7 +414,7 @@ def id_ratings(page):
         ratings += ['Trial']
     elif re.search('\|rating=testing', page, re.I):
         ratings += ['Testing']
-    elif re.search('\|rating=archived|{{archived-build', page, re.I):
+    elif re.search('\|rating=archived', page, re.I):
         ratings += ['Archived']
     elif re.search('\|rating=abandoned', page, re.I):
         ratings += ['Abandoned']
