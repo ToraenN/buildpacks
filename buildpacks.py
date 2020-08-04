@@ -348,7 +348,7 @@ def directory_tree(dirlevels, pvx):
 
 def id_codes(page):
     # Each retrieved code will be a 3-tuple of the format (position, title, code). The first two will be blank for any code not wrapped in Template:Variantbar
-    regex = re.compile('(?s)(?:<th colspan="2" align="left"><big>(?:Position (?P<position>\d+)&#160;){0,1}Variant: (?P<title>.*?)<\/big>.*?){0,1}<input id="gws_template_input" type="text" value="(?P<code>.*?)"')
+    regex = re.compile('(?s)(?:<th colspan="2" align="left" style="background:#\w{6}"><big>(?:Position (?P<position>\d+)&#160;){0,1}Variant: (?P<title>.*?)<\/big>.*?){0,1}<input class="gws_template_input" type="text" value="(?P<code>.*?)"')
     codes = re.findall(regex, page)
     return codes
 
