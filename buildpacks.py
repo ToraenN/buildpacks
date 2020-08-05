@@ -193,7 +193,7 @@ def get_build(i, dirorder, rdirs):
             log_write('Directories used: ' + str(directories))
         
         builddatalist = []
-        # Check to see if the build is a team build
+        # Team builds
         if 'Team' in i and len(codes) > 1:
             num = 0
             for position, title, code in codes:
@@ -207,6 +207,7 @@ def get_build(i, dirorder, rdirs):
                     else:
                         tempname = ' - ' + title
                     builddatalist += [BuildData(file_name_sub(str(position) + ' Variant' + tempname + '.txt'), code, directories, pvx)]
+        # Single builds
         else:
             # Sort codes between mainbar and variant bars
             mainbars = []
@@ -216,25 +217,12 @@ def get_build(i, dirorder, rdirs):
                     mainbars.append(code) # Only retrieve code for mainbars
                 else:
                     variants.append((title, code)) # Skip the position argument (as we are not in team builds here)
-            # Check for a non-team build with both player and hero mainbars, and sort them appropriately
-            if len(mainbars) > 1 and 'Hero' in gametypes and 'General' in gametypes:
-                if not 'g' in dirorder:
-                    builddatalist += [BuildData(file_name_sub(i) + ' - Hero' + rateinname + '.txt', mainbars[1], directories, pvx), BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories, pvx)]
-                else:
-                    herodirs = []
-                    nonherodirs = []
-                    for d in directories:
-                        if 'Hero' in d:
-                            herodirs += [d]
-                        else:
-                            nonherodirs += [d]
-                    builddatalist += [BuildData(file_name_sub(i) + ' - Hero' + rateinname + '.txt', mainbars[1], herodirs, pvx), BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], nonherodirs, pvx)]
-            else:
-                try:
-                    builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories, pvx)]
-                except:
-                    pass # All templates were enclosed in {{variantbar}}, which is a valid page format for certain builds
-            # Handle any variant bars
+            # Prepare mainbar files
+            try:
+                builddatalist += [BuildData(file_name_sub(i) + rateinname + '.txt', mainbars[0], directories, pvx)]
+            except:
+                pass # All templates were enclosed in {{variantbar}}, which is a valid page format for certain builds
+            # Prepare variant files
             num = 0
             for title, code in variants:
                 num += 1
