@@ -41,6 +41,4 @@ z : forces creation of zip archives even if saving individual text files.
 # Notes
 The scripts only recognize builds in the 'Build:' and 'Archive:' namespaces on PvXwiki.
 
-Team builds are saved in their own subfolders and each template is named: Team - Build Name - #.txt. The scripts do not pull the builds' names or profession prefixes from the page to name the file with.
-
-Non-team builds that have separate player and hero template codes will appropriately be sorted to the 'general' (player build) and 'hero' (hero build) folders.
+Team builds are saved in their own subfolders and each template is named: # Standard.txt. The scripts do not pull the builds' names or profession prefixes from the page to name the file with.
