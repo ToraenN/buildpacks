@@ -47,19 +47,6 @@ def setup_categories():
         while manualcatentry != '':
             categories += [manualcatentry.replace(' ','_')]
             manualcatentry = print_prompt('Enter category (leave blank to end entry): ')
-    # if 'c' in parameters:
-        # if 'y' in print_prompt('Do you want any PvP builds? (y/n) '):
-            # if 'y' in print_prompt('All of them? (y/n) '):
-                # categories += ['All_working_PvP_builds']
-            # else:
-                # categories += category_selection(['All_working_AB_builds', 'All_working_FA_builds', 'All_working_JQ_builds', 'All_working_RA_builds', 'All_working_GvG_builds', 'All_working_HA_builds', 'All_working_PvP_team_builds'])
-        # if 'y' in print_prompt('Do you want any PvE builds? (y/n) '):
-            # if 'y' in print_prompt('All of them? (y/n) '):
-                # categories += ['All_working_PvE_builds']
-            # else:
-                # categories += category_selection(['All_working_general_builds', 'All_working_hero_builds', 'All_working_SC_builds', 'All_working_running_builds', 'All_working_farming_builds', 'All_working_quest_builds', 'All_working_PvE_team_builds'])
-        # if 'y' in print_prompt('Would you like to compile any misc. categories? (y/n) '):
-            # categories += category_selection(['Affected_by_Flux', 'Build_stubs', 'Trial_Builds', 'Untested_testing_builds', 'Abandoned', 'Trash_builds', 'Archived_tested_builds','WELL'])
     if len(categories) == 0:
         # Default to all currently vetted and vetting builds.
         print_log("Using default categories.", "yes")
@@ -446,7 +433,6 @@ if __name__ == "__main__":
     while 'h' in parameters:
         print('a: don\'t save Any/X builds.')
         print('b: block consolidated zip packs explicitly.')
-        # print('c: list and choose from preset categories.')
         print('l: limit saved builds by sort attribute.')
         print('m: manual category entry. Enter as many categories as you want.')
         print('o: change folder layout.')
