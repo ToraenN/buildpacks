@@ -1,5 +1,5 @@
 # License for this script is the CC BY-NC-SA 2.5: https://creativecommons.org/licenses/by-nc-sa/2.5/
-# The original author of this script is Danny, of PvXwiki: http://gwpvx.gamepedia.com/UserProfile:Danny11384
+# The original author of this script is Danny, of PvXwiki: http://gwpvx.fandom.com/UserProfile:Danny11384
 import http.client
 import re
 import os
@@ -54,7 +54,7 @@ def setup_categories():
 
     # Fetch the builds from the categories.
     pagelist = deque()
-    conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
+    conn = http.client.HTTPSConnection('gwpvx.fandom.com')
     while categories:
         cat = categories.pop()
         catname = re.sub(r'&cmcontinue=page\|.*\|.*', '', cat).replace('_',' ')
@@ -100,7 +100,7 @@ def get_build(i, dirorder, rdirs):
         return
     print_log("Attempting " + i.replace('_',' ') + "...")
     conn = None # conn must be purged between build reloads to get the new version of the page
-    conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
+    conn = http.client.HTTPSConnection('gwpvx.fandom.com')
     conn.request('GET', '/api.php?action=parse&prop=text|wikitext&page=' + i.replace(' ','_') + '&format=php')
     response = conn.getresponse()
     page = str(response.read())
@@ -224,7 +224,7 @@ def get_build(i, dirorder, rdirs):
     elif response.status == (301 or 302):
         # Follow the redirect
         headers = str(response.getheaders())
-        newpagestr = re.findall("gwpvx.gamepedia.com/(.*?)'\)", headers)
+        newpagestr = re.findall("gwpvx.fandom.com/(.*?)'\)", headers)
         newpagename = newpagestr[0].replace('_',' ')
         print_log('Redirection...')
         return newpagename
@@ -449,7 +449,7 @@ if __name__ == "__main__":
         log_write(str(datetime[0]) + '.' + str(datetime[1]).zfill(2) + '.' + str(datetime[2]).zfill(2))
         log_write('Parameters: ' + parameters)
     # Setup the connection and test the servers
-    conn = http.client.HTTPSConnection('gwpvx.gamepedia.com')
+    conn = http.client.HTTPSConnection('gwpvx.fandom.com')
     try:
         conn.request('GET', '/PvX_wiki')
     except:
