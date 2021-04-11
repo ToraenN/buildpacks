@@ -451,7 +451,7 @@ if __name__ == "__main__":
     # Setup the connection and test the servers
     conn = http.client.HTTPSConnection('gwpvx.fandom.com')
     try:
-        conn.request('GET', '/PvX_wiki')
+        conn.request('GET', '/api.php')
     except:
         print_log('Turn on your internet scrub.','yes')
     else:
